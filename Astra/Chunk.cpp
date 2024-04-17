@@ -16,11 +16,11 @@ void Chunk::disassemble(const char* name) {
 	std::cout << "== " << name << " ==" << std::endl;
 
 	for (int offset = 0; offset < code.size();) {
-		offset = disassembleInstruction(offset);
+		offset = disassemble_instruction(offset);
 	}
 }
 
-int Chunk::disassembleInstruction(int offset) {
+int Chunk::disassemble_instruction(int offset) {
 	std::cout << offset << " ";
 	if (offset > 0 && lines[offset] == lines[offset - 1])
 		std::cout << "    | ";
@@ -32,19 +32,19 @@ int Chunk::disassembleInstruction(int offset) {
 	switch (instruction)
 	{
 	case OpCode::CONSTANT:
-		return constantInstruction("CONSTANT", offset);
+		return constant_instruction("CONSTANT", offset);
 	case OpCode::NEGATE:
-		return simpleInstruction("OP_NEGATE", offset);
+		return simple_instruction("OP_NEGATE", offset);
 	case OpCode::ADD:
-		return simpleInstruction("OP_ADD", offset);
+		return simple_instruction("OP_ADD", offset);
 	case OpCode::SUBTRACT:
-		return simpleInstruction("OP_SUBTRACT", offset);
+		return simple_instruction("OP_SUBTRACT", offset);
 	case OpCode::MULTIPLY:
-		return simpleInstruction("OP_MULTIPLY", offset);
+		return simple_instruction("OP_MULTIPLY", offset);
 	case OpCode::DIVIDE:
-		return simpleInstruction("OP_DIVIDE", offset);
+		return simple_instruction("OP_DIVIDE", offset);
 	case OpCode::RETURN:
-		return simpleInstruction("RETURN", offset);
+		return simple_instruction("RETURN", offset);
 	default:
 		std::cout << "Unkown OpCode " << instruction;
 		return offset + 1;
@@ -52,21 +52,21 @@ int Chunk::disassembleInstruction(int offset) {
 	
 }
 
-int Chunk::simpleInstruction(const char* name, int offset) {
+int Chunk::simple_instruction(const char* name, int offset) {
 	std::cout << name;
 	std::cout << std::endl;
 	return offset + 1;
 }
 
-int Chunk::addConstant(Value value) {
+int Chunk::add_constant(Value value) {
 	constants.write(value);
 	return constants.values.size() - 1;
 }
 
-int Chunk::constantInstruction(const char* name, int offset) {
+int Chunk::constant_instruction(const char* name, int offset) {
 	uint8_t constant = code[offset + 1];
 	std::cout << name << " " << constant;
-	printValue(constants.values[constant]);
+	print_value(constants.values[constant]);
 	std::cout << std::endl;
 	return offset + 2;
 }

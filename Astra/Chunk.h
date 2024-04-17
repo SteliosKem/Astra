@@ -14,17 +14,17 @@ enum OpCode {
 
 class Chunk {
 public:
-	std::vector<uint8_t> code;
-	ValueArray constants;
+	std::vector<uint8_t> code;										// Bytes
+	ValueArray constants;											// Constant Pool
 	std::vector<int> lines;
 
-	void write(uint8_t byte, int line);
+	void write(uint8_t byte, int line);								// Write byte to chunk
 	void free();
 	void disassemble(const char* name);
-	int addConstant(Value value);
-	int constantInstruction(const char* name, int offset);
-	int disassembleInstruction(int offset);
-private:
+	int add_constant(Value value);									// Add to constant pool
 	
-	static int simpleInstruction(const char* name, int offset);
+private:
+	int disassemble_instruction(int offset);
+	int constant_instruction(const char* name, int offset);
+	static int simple_instruction(const char* name, int offset);
 };

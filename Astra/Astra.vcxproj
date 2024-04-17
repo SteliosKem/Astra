@@ -129,11 +129,15 @@
   <ItemGroup>
     <ClCompile Include="Astra.cpp" />
     <ClCompile Include="Chunk.cpp" />
+    <ClCompile Include="Compiler.cpp" />
+    <ClCompile Include="Compiler.h" />
+    <ClCompile Include="Lexer.cpp" />
     <ClCompile Include="Value.cpp" />
     <ClCompile Include="VM.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Chunk.h" />
+    <ClInclude Include="Lexer.h" />
     <ClInclude Include="Value.h" />
     <ClInclude Include="Vm.h" />
   </ItemGroup>

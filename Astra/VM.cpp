@@ -1,4 +1,5 @@
 #include "Vm.h"
+#include "Compiler.h"
 #include <iostream>
 
 Result VM::interpret(Chunk* _chunk) {
@@ -11,19 +12,21 @@ Result VM::run() {
 	while (true) {
 #ifdef DEBUG_TRACE_EXECUTION
 		std::cout << "        ";
-		for (Value* slot = &(stack.top()) - stack.size(); slot < &(stack.top()); slot++) {
-			std::cout << "[ ";
-			printValue(*slot);
-			std::cout << " ]";
+		if (!stack.empty()) {
+			for (Value* slot = &(stack.top()) - stack.size(); slot < &(stack.top()); slot++) {
+				std::cout << "[ ";
+				print_value(*slot);
+				std::cout << " ]";
+			}
 		}
 		std::cout << std::endl;
-		chunk->disassembleInstruction((int)(program_counter - &(chunk->code[0])));
+		chunk->disassemble_instruction((int)(program_counter - &(chunk->code[0])));
 #endif
 		uint8_t instruction;
 		Value b;
 		switch (instruction = *program_counter++) {
 		case OpCode::RETURN:
-			printValue(pop_stack());
+			print_value(pop_stack());
 			
 			std::cout << std::endl;
 			return Result::OK;
@@ -62,4 +65,9 @@ Value VM::pop_stack() {
 	Value current_val = stack.top();
 	stack.pop();
 	return current_val;
+}
+
+Result VM::interpret(const std::string& input) {
+	compile(input);
+	return Result::OK;
 }

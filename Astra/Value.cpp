@@ -9,6 +9,6 @@ void ValueArray::free() {
 	values.clear();
 }
 
-void printValue(Value value) {
+void print_value(Value value) {
 	std::cout << value;
 }
