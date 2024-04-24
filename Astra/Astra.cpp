@@ -1,6 +1,7 @@
 #include <iostream>
 #include "Chunk.h"
 #define DEBUG_TRACE_EXECUTION
+#define DEBUG_PRINT_CODE
 #include "Vm.h"
 #include <string>
 #include <fstream>
@@ -41,12 +42,12 @@ int main(int argc, const char* argv[])
     }
     
     Chunk chunk;
-    int constant = chunk.add_constant(1.2);
+    /*int constant = chunk.add_constant(1.2);
     chunk.write(OpCode::CONSTANT, 0);
     chunk.write(constant, 0);
 
     chunk.write(OpCode::RETURN, 0);
-    chunk.disassemble("test");
+    chunk.disassemble("test");*/
 
     vm.interpret(&chunk);
 

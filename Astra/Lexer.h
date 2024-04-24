@@ -1,32 +1,34 @@
 #pragma once
 #include <string>
 #include <iostream>
+#include <memory>
 
 enum TokenType {
-	L_PAR, R_PAR, L_BRACE, R_BRACE,
-	COMMA, DOT, MINUS, PLUS,
-	SEMICOLON, SLASH, STAR,
+	TOKEN_L_PAR, TOKEN_R_PAR, TOKEN_L_BRACE, TOKEN_R_BRACE,
+	TOKEN_COMMA, TOKEN_DOT, TOKEN_MINUS, TOKEN_PLUS,
+	TOKEN_SEMICOLON, TOKEN_SLASH, TOKEN_STAR,
 
-	BANG, BANG_EQUAL,
-	EQUAL, EQUAL_EQUAL,
-	GREATER, GREATER_EQUAL,
-	LESS, LESS_EQUAL,
+	TOKEN_BANG, TOKEN_BANG_EQUAL,
+	TOKEN_EQUAL, TOKEN_EQUAL_EQUAL,
+	TOKEN_GREATER, TOKEN_GREATER_EQUAL,
+	TOKEN_LESS, TOKEN_LESS_EQUAL,
 
-	ID, STR, NUM,
+	TOKEN_ID, TOKEN_STR, TOKEN_NUM,
 
-	AND, CLASS, ELSE, FALSE,
-	FOR, FUN, IF, VOID, OR,
-	PRINT, RETURN, SUPER, THIS,
-	TRUE, VAR, WHILE,
+	TOKEN_AND, TOKEN_CLASS, TOKEN_ELSE, TOKEN_FALSE,
+	TOKEN_FOR, TOKEN_FUN, TOKEN_IF, TOKEN_VOID, TOKEN_OR,
+	TOKEN_PRINT, TOKEN_RETURN, TOKEN_SUPER, TOKEN_THIS,
+	TOKEN_TRUE, TOKEN_VAR, TOKEN_WHILE,
 
-	ERROR, _EOF
+	TOKEN_ERROR, TOKEN_EOF
 };
 
 class Token {
 public:
 	Token(TokenType _type, std::string _value, int _line) : type(_type), value(_value), line(_line) {}
+	Token() {}
 	Token(const std::string& error, int _line) {
-		type = ERROR;
+		type = TOKEN_ERROR;
 		value = error;
 		line = _line;
 	}
@@ -38,98 +40,25 @@ public:
 class Lexer {
 public:
 	Lexer(const std::string& _source) : source(_source) {}
+	Lexer() { source = ""; }
+
 	char current_char;
 	int pos = -1;
 	int line = 0;
-	const std::string& source;
+	std::string source;
+
 	Token lex();
 
-	static bool is_digit(char character) {
-		return character >= '0' && character <= '9';
-	}
-
-	static bool is_alpha(char character) {
-		return (character >= 'a' && character <= 'z') ||
-			(character >= 'A' && character <= 'Z') || character == '_';
-	}
-
-	static TokenType id_type(const std::string& id) {
-		switch (id[0]) {
-		case 'a': {
-			if (id == "and") return AND;
-			break;
-		}
-		case 'c': {
-			if (id == "class") return CLASS;
-			break;
-		}
-		case 'e': {
-			if (id == "else") return ELSE;
-			break;
-		}
-		case 'i': {
-			if (id == "if") return IF;
-			break;
-		}
-		case 'v': {
-			if (id == "void") return VOID;
-			break;
-		}
-		case 'o': {
-			if (id == "or") return OR;
-			break;
-		}
-		case 'p': {
-			if (id == "print") return PRINT;
-			break;
-		}
-		case 'r': {
-			if (id == "return") return AND;
-			break;
-		}
-		case 's': {
-			if (id == "super") return SUPER;
-			break;
-		}
-		case 'l': {
-			if (id == "let") return VAR;
-			break;
-		}
-		case 'w': {
-			if (id == "while") return WHILE;
-			break;
-		}
-		case 'f': {
-			if (id == "false") return FALSE;
-			else if (id == "for") return FOR;
-			else if (id == "fn") return FUN;
-			break;
-		}
-		case 't': {
-			if (id == "this") return THIS;
-			else if (id == "true") return TRUE;
-			break;
-		}
-		}
-		return ID;
-	}
+	static bool is_digit(char character);
+	static bool is_alpha(char character);
+	static TokenType id_type(const std::string& id);		// Decides wether a word is and identifier or keyword
 private:
-	void next() {
-		pos++;
-		current_char = pos < source.size() ? source[pos] : '\0';
-	}
-	void back() {
-		pos--;
-		current_char = source[pos];
-	}
-	bool match(char expected) {
-		if (pos + 1 >= source.size() || source[pos + 1] != expected) return false;
-		next();
-		return true;
-	}
+	void next();
+	void back();
+	bool match(char expected);								// Match next character
 
-	Token str();
-	Token num();
-	Token id();
+	Token str();											// Make string Token
+	Token num();											// Make number Token
+	Token id();												// Make identifier/keyword Token
 };
 

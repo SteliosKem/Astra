@@ -4,7 +4,7 @@
 
 Result VM::interpret(Chunk* _chunk) {
 	chunk = _chunk;
-	program_counter = &(chunk->code[0]);
+	program_counter = 0;
 	return run();
 }
 
@@ -24,7 +24,7 @@ Result VM::run() {
 #endif
 		uint8_t instruction;
 		Value b;
-		switch (instruction = *program_counter++) {
+		switch (instruction = chunk->code[program_counter++]) {
 		case OpCode::RETURN:
 			print_value(pop_stack());
 			
@@ -37,6 +37,7 @@ Result VM::run() {
 		case OpCode::SUBTRACT:
 			b = pop_stack();
 			stack.push(pop_stack() - b);
+			std::cout << "hi";
 			break;
 		case OpCode::MULTIPLY: 
 			b = pop_stack();
@@ -50,10 +51,11 @@ Result VM::run() {
 			stack.push(-pop_stack());
 			break;
 		case OpCode::CONSTANT:
-			Value constant = chunk->constants.values[*program_counter++];
+			Value constant = chunk->constants.values[chunk->code[program_counter++]];
 			stack.push(constant);
 			break;
 		}
+		
 	}
 }
 
@@ -68,6 +70,20 @@ Value VM::pop_stack() {
 }
 
 Result VM::interpret(const std::string& input) {
-	compile(input);
-	return Result::OK;
+	Parser parser{};
+	Compiler compiler(input, parser);
+	Chunk new_chunk;
+	chunk = &new_chunk;
+	if (!compiler.compile(chunk)) {
+		chunk->free();
+		return COMPILE_ERROR;
+	}
+	program_counter = 0;
+	/*for (int i = 0; i < chunk->code.size(); i++) {
+		std::cout << (int)(chunk->code[i]) << std::endl;
+	}*/
+	Result result = run();
+
+	chunk->free();
+	return result;
 }
