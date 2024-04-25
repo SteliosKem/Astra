@@ -15,31 +15,31 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	rules[TOKEN_SEMICOLON] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_SLASH] = ParseRule{ FN_NONE,     FN_BINARY,   PREC_FACTOR };
 	rules[TOKEN_STAR] = ParseRule{ FN_NONE,     FN_BINARY,   PREC_FACTOR };
-	rules[TOKEN_BANG] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
-	rules[TOKEN_BANG_EQUAL] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_BANG] = ParseRule{ FN_UNARY,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_BANG_EQUAL] = ParseRule{ FN_NONE,     FN_BINARY,   PREC_EQUALITY };
 	rules[TOKEN_EQUAL] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
-	rules[TOKEN_EQUAL_EQUAL] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
-	rules[TOKEN_GREATER] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
-	rules[TOKEN_GREATER_EQUAL] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
-	rules[TOKEN_LESS] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
-	rules[TOKEN_LESS_EQUAL] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_EQUAL_EQUAL] = ParseRule{ FN_NONE,     FN_BINARY,   PREC_EQUALITY };
+	rules[TOKEN_GREATER] = ParseRule{ FN_NONE,     FN_BINARY,   PREC_COMPARISON };
+	rules[TOKEN_GREATER_EQUAL] = ParseRule{ FN_NONE,     FN_BINARY,   PREC_COMPARISON };
+	rules[TOKEN_LESS] = ParseRule{ FN_NONE,     FN_BINARY,   PREC_COMPARISON };
+	rules[TOKEN_LESS_EQUAL] = ParseRule{ FN_NONE,     FN_BINARY,   PREC_COMPARISON };
 	rules[TOKEN_ID] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_STR] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_NUM] = ParseRule{ FN_NUMBER,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_AND] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_CLASS] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_ELSE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
-	rules[TOKEN_FALSE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_FALSE] = ParseRule{ FN_LITERAL,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_FOR] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_FUN] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_IF] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
-	rules[TOKEN_VOID] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_VOID] = ParseRule{ FN_LITERAL,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_OR] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_PRINT] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_RETURN] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_SUPER] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_THIS] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
-	rules[TOKEN_TRUE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_TRUE] = ParseRule{ FN_LITERAL,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_VAR] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_WHILE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_ERROR] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
@@ -115,7 +115,10 @@ void Compiler::unary() {
 	parse_precedence(PREC_UNARY);
 	switch(operator_type) {
 	case TOKEN_MINUS:
-		emit_byte(NEGATE);
+		emit_byte(OC_NEGATE);
+		break;
+	case TOKEN_BANG:
+		emit_byte(OC_NOT);
 		break;
 	default:
 		return;
@@ -129,17 +132,36 @@ void Compiler::binary() {
 	parse_precedence((Precedence)(rule.precedence + 1));
 
 	switch (operator_type) {
+	case TOKEN_BANG_EQUAL:
+		emit_bytes(OC_EQUAL, OC_NOT);
+		break;
+	case TOKEN_EQUAL_EQUAL:
+		emit_byte(OC_EQUAL);
+		break;
+	case TOKEN_GREATER:
+		emit_byte(OC_GREATER);
+		break;
+	case TOKEN_LESS:
+		emit_byte(OC_LESS);
+		break;
+
+	case TOKEN_GREATER_EQUAL:
+		emit_bytes(OC_LESS, OC_NOT);
+		break;
+	case TOKEN_LESS_EQUAL:
+		emit_bytes(OC_GREATER, OC_NOT);
+		break;
 	case TOKEN_PLUS:
-		emit_byte(ADD);
+		emit_byte(OC_ADD);
 		break;
 	case TOKEN_MINUS:
-		emit_byte(SUBTRACT);
+		emit_byte(OC_SUBTRACT);
 		break;
 	case TOKEN_STAR:
-		emit_byte(MULTIPLY);
+		emit_byte(OC_MULTIPLY);
 		break;
 	case TOKEN_SLASH:
-		emit_byte(DIVIDE);
+		emit_byte(OC_DIVIDE);
 		break;
 	default:
 		return;
@@ -192,6 +214,8 @@ void Compiler::call_prec_function(ParseFn func) {
 		return binary();
 	case FN_NUMBER:
 		return number();
+	case FN_LITERAL:
+		return literal();
 	default:
 		break;
 	}
@@ -204,7 +228,7 @@ void Compiler::grouping() {
 
 void Compiler::number() {
 	double value = stod(parser.previous_token.value);
-	emit_constant(value);
+	emit_constant(make_number(value));
 }
 
 void Compiler::expression() {
@@ -217,4 +241,20 @@ void Compiler::consume(TokenType type, const std::string& message) {
 		return;
 	}
 	error_at(&parser.current_token, message);
+}
+
+void Compiler::literal() {
+	switch (parser.previous_token.type) {
+	case TOKEN_FALSE: 
+		emit_byte(OC_FALSE);
+		break;
+	case TOKEN_VOID:
+		emit_byte(OC_VOID);
+		break;
+	case TOKEN_TRUE:
+		emit_byte(OC_TRUE);
+		break;
+	default:
+		return;
+	}
 }

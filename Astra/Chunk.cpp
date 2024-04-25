@@ -31,20 +31,34 @@ int Chunk::disassemble_instruction(int offset) {
 	uint8_t instruction = code[offset];
 	switch (instruction)
 	{
-	case OpCode::CONSTANT:
+	case OC_CONSTANT:
 		return constant_instruction("CONSTANT", offset);
-	case OpCode::NEGATE:
+	case OC_NEGATE:
 		return simple_instruction("OP_NEGATE", offset);
-	case OpCode::ADD:
+	case OC_NOT:
+		return simple_instruction("OP_NOT", offset);
+	case OC_VOID:
+		return simple_instruction("OP_VOID", offset);
+	case OC_TRUE:
+		return simple_instruction("OP_TRUE", offset);
+	case OC_FALSE:
+		return simple_instruction("OP_FALSE", offset);
+	case OC_ADD:
 		return simple_instruction("OP_ADD", offset);
-	case OpCode::SUBTRACT:
+	case OC_SUBTRACT:
 		return simple_instruction("OP_SUBTRACT", offset);
-	case OpCode::MULTIPLY:
+	case OC_MULTIPLY:
 		return simple_instruction("OP_MULTIPLY", offset);
-	case OpCode::DIVIDE:
+	case OC_DIVIDE:
 		return simple_instruction("OP_DIVIDE", offset);
-	case OpCode::RETURN:
+	case OC_RETURN:
 		return simple_instruction("RETURN", offset);
+	case OC_EQUAL:
+		return simple_instruction("OP_EQUAL", offset);
+	case OC_GREATER:
+		return simple_instruction("OP_GREATER", offset);
+	case OC_LESS:
+		return simple_instruction("OP_LESS", offset);
 	default:
 		std::cout << "Unkown OpCode " << instruction;
 		return offset + 1;

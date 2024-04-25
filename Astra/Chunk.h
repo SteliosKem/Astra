@@ -3,13 +3,20 @@
 #include "Value.h"
 
 enum OpCode {
-	CONSTANT,
-	ADD,
-	SUBTRACT,
-	MULTIPLY,
-	DIVIDE,
-	NEGATE,
-	RETURN,
+	OC_CONSTANT,
+	OC_VOID,
+	OC_TRUE,
+	OC_FALSE,
+	OC_ADD,
+	OC_SUBTRACT,
+	OC_MULTIPLY,
+	OC_DIVIDE,
+	OC_NEGATE,
+	OC_RETURN,
+	OC_NOT,
+	OC_EQUAL,
+	OC_LESS,
+	OC_GREATER
 };
 
 class Chunk {

@@ -1,7 +1,8 @@
 #pragma once
 #include "Chunk.h"
-#include <stack>
+#include <vector>
 #include <string>
+#include "Lexer.h"
 
 enum Result {
 	OK,
@@ -12,13 +13,21 @@ enum Result {
 class VM {
 public:
 	Chunk* chunk;
-	std::stack<Value> stack;
+	std::vector<Value> stack;
 
 	void free();
 	Result interpret(Chunk* _chunk);
 	Result interpret(const std::string& input);
 private:
 	int program_counter;
+	Result binary_operation(ValueType type, TokenType op);
 	Result run();
 	Value pop_stack();
+	Value stack_top();
+	Value peek(int distance);
+	void runtime_error(const char* format, ...);
+	bool is_false(Value val) {
+		return is_void(val) || (is_bool(val) && !get_bool(val)) || (is_number(val) && !get_number(val));
+	}
+	bool values_equal(Value a, Value b);
 };

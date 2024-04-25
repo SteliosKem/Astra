@@ -24,7 +24,7 @@
     <ClCompile Include="Value.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VM.cpp">
+    <ClCompile Include="Vm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Compiler.h">

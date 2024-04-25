@@ -23,7 +23,8 @@ enum ParseFn {
 	FN_GROUPING,
 	FN_UNARY,
 	FN_BINARY,
-	FN_NUMBER
+	FN_NUMBER,
+	FN_LITERAL
 };
 
 struct ParseRule {
@@ -58,6 +59,7 @@ public:
 	void grouping();
 	void unary();
 	void binary();
+	void literal();
 	void parse_precedence(Precedence precedence);
 
 	ParseRule get_rule(TokenType type) {
@@ -67,7 +69,7 @@ public:
 	void call_prec_function(ParseFn func);
 
 	void emit_constant(Value value) {
-		emit_bytes(OpCode::CONSTANT, make_constant(value));
+		emit_bytes(OC_CONSTANT, make_constant(value));
 	}
 
 	void emit_byte(uint8_t byte) {
@@ -82,7 +84,7 @@ private:
 		error_at(&parser.previous_token, message);
 	}
 	void emit_return() {
-		emit_byte(OpCode::RETURN);
+		emit_byte(OC_RETURN);
 	}
 	void emit_bytes(uint8_t b1, uint8_t b2);
 };
