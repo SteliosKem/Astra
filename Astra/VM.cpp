@@ -2,6 +2,8 @@
 #include "Compiler.h"
 #include <iostream>
 #include <cstdarg>
+#include <format>
+
 
 Result VM::interpret(Chunk* _chunk) {
 	chunk = _chunk;
@@ -61,9 +63,6 @@ Result VM::run() {
 		Result res = OK;
 		switch (instruction = chunk->code[program_counter++]) {
 		case OC_RETURN:
-			print_value(pop_stack());
-			
-			std::cout << std::endl;
 			return Result::OK;
 		case OC_ADD:
 		{
@@ -122,7 +121,44 @@ Result VM::run() {
 		case OC_FALSE:
 			stack.push_back(make_bool(false));
 			break;
-
+		case OC_PRINT:
+			print_value(pop_stack());
+			std::cout << std::endl;
+			break;
+		case OC_POP:
+			pop_stack();
+			break;
+		case OC_DEFINE_GLOBAL:
+		{
+			String* name = get_string(chunk->constants.values[chunk->code[program_counter++]]);
+			if (globals.find(name->str) != globals.end()) {
+				runtime_error(std::format("Defined already existing variable '{0}'", name->str));
+				return RUNTIME_ERROR;
+			}
+			globals[name->str] = peek(0);
+			pop_stack();
+			break;
+		}
+		case OC_GET_GLOBAL:
+		{
+			String* name = get_string(chunk->constants.values[chunk->code[program_counter++]]);
+			if (globals.find(name->str) == globals.end()) {
+				runtime_error(std::format("Undefined variable '{0}'", name->str));
+				return RUNTIME_ERROR;
+			}
+			stack.push_back(globals[name->str]);
+			break;
+		}
+		case OC_SET_GLOBAL:
+		{
+			String* name = get_string(chunk->constants.values[chunk->code[program_counter++]]);
+			if (globals.find(name->str) == globals.end()) {
+				runtime_error(std::format("Undefined variable '{0}'", name->str));
+				return RUNTIME_ERROR;
+			}
+			globals[name->str] = peek(0);
+			break;
+		}
 		}
 		
 		if (res == RUNTIME_ERROR) {
@@ -177,7 +213,7 @@ Value VM::peek(int distance) {
 	return stack[stack.size() - 1 - distance];
 }
 
-void VM::runtime_error(const char* format, ...) {
+void VM::runtime_error(const std::string& format, ...) {
 	//va_list args;
 	//va_start(args, format);
 	std::cout << format;
@@ -222,3 +258,5 @@ void VM::concatenate_string() {
 	stack.push_back(make_object(new_str));
 	delete a, b;
 }
+
+

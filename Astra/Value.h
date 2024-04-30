@@ -5,8 +5,8 @@
 #include <memory>
 
 enum ValueType {
-	VALUE_BOOL,
 	VALUE_VOID,
+	VALUE_BOOL,
 	VALUE_NUMBER,
 	VALUE_OBJECT
 };

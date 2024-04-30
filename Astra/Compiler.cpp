@@ -25,7 +25,7 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	rules[TOKEN_GREATER_EQUAL] = ParseRule{ FN_NONE,     FN_BINARY,   PREC_COMPARISON };
 	rules[TOKEN_LESS] = ParseRule{ FN_NONE,     FN_BINARY,   PREC_COMPARISON };
 	rules[TOKEN_LESS_EQUAL] = ParseRule{ FN_NONE,     FN_BINARY,   PREC_COMPARISON };
-	rules[TOKEN_ID] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_ID] = ParseRule{ FN_VARIABLE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_STR] = ParseRule{ FN_STRING,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_NUM] = ParseRule{ FN_NUMBER,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_AND] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
@@ -50,9 +50,8 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 
 bool Compiler::compile(Chunk* chunk) {
 	compiling_chunk = chunk;
-	parser.current_token = Token(TOKEN_PLUS, "", 0);
 
-	while (true) {
+	/*while (true) {
 		Token token = lexer.lex();
 		if (token.line != lexer.line) {
 			std::cout << "    " << token.line;
@@ -64,12 +63,20 @@ bool Compiler::compile(Chunk* chunk) {
 		if (token.type == TOKEN_EOF) break;
 	}
 	lexer.pos = -1;
-	lexer.line = 0;
+	lexer.line = 0;*/
 	next();
-	expression();
+	while (!match(TOKEN_EOF)) {
+		declaration();
+	}
 	end();
 	return !parser.error;
 	
+}
+
+bool Compiler::match(TokenType type) {
+	if (parser.current_token.type != type) return false;
+	next();
+	return true;
 }
 
 void Compiler::next() {
@@ -179,6 +186,7 @@ void Compiler::parse_precedence(Precedence precedence) {
 		return;
 	}
 	
+	can_assign = precedence <= PREC_ASSIGNMENT;
 	call_prec_function(prefix_rule);
 
 
@@ -186,6 +194,10 @@ void Compiler::parse_precedence(Precedence precedence) {
 		next();
 		ParseFn infix_rule = get_rule(parser.previous_token.type).infix;
 		call_prec_function(infix_rule);
+	}
+
+	if (can_assign && match(TOKEN_EQUAL)) {
+		error("Invalid assignment target");
 	}
 }
 
@@ -220,6 +232,8 @@ void Compiler::call_prec_function(ParseFn func) {
 		return literal();
 	case FN_STRING:
 		return string();
+	case FN_VARIABLE:
+		return variable();
 	default:
 		break;
 	}
@@ -265,4 +279,101 @@ void Compiler::literal() {
 
 void Compiler::string() {
 	emit_constant(make_object(new String(parser.previous_token.value)));
+}
+
+void Compiler::declaration() {
+	if (match(TOKEN_VAR)) {
+		variable_declaration();
+	}
+	else statement();
+	
+	if (parser.panic) synchronize();
+}
+
+void Compiler::statement() {
+	if (match(TOKEN_PRINT)) {
+		print_statement();
+	}
+	else {
+		expression_statement();
+	}
+}
+
+void Compiler::expression_statement() {
+	expression();
+	consume(TOKEN_SEMICOLON, "Expected ';' after expression");
+	emit_byte(OC_POP);
+}
+
+void Compiler::print_statement() {
+	expression();
+	consume(TOKEN_SEMICOLON, "Expected ';' after expression");
+	emit_byte(OC_PRINT);
+}
+
+void Compiler::synchronize() {
+	parser.panic = false;
+
+	while (parser.current_token.type != TOKEN_EOF) {
+		if (parser.previous_token.type == TOKEN_SEMICOLON) return;
+		switch (parser.current_token.type) {
+		case TOKEN_CLASS:
+		case TOKEN_FUN:
+		case TOKEN_VAR:
+		case TOKEN_FOR:
+		case TOKEN_IF:
+		case TOKEN_WHILE:
+		case TOKEN_PRINT:
+		case TOKEN_RETURN:
+			return;
+		default:
+			;
+		}
+
+		next();
+	}
+}
+
+void Compiler::variable_declaration() {
+	uint8_t global = parse_variable("Expected variable name");
+
+	if(match(TOKEN_EQUAL)) {
+		expression();
+	}
+	else {
+		emit_byte(OC_VOID);
+	}
+
+	consume(TOKEN_SEMICOLON, "Expected ';' after variable declaration");
+
+	define_variable(global);
+}
+
+uint8_t Compiler::parse_variable(const std::string& error) {
+	consume(TOKEN_ID, error);
+	return make_constant(make_object(new String(parser.previous_token.value)));
+}
+
+void Compiler::define_variable(uint8_t global) {
+	emit_bytes(OC_DEFINE_GLOBAL, global);
+}
+
+void Compiler::variable() {
+	named_variable(parser.previous_token);
+}
+
+void Compiler::named_variable(Token name) {
+	uint8_t arg = identifier_constant(&name);
+
+	if (can_assign && match(TOKEN_EQUAL)) {
+		expression();
+		emit_bytes(OC_SET_GLOBAL, arg);
+	}
+	else {
+		emit_bytes(OC_GET_GLOBAL, arg);
+	}
+}
+
+uint8_t Compiler::identifier_constant(Token* name) {
+	return make_constant(make_object(new String(name->value)));
 }

@@ -3,6 +3,7 @@ CURRENT:
 - Comparison Operations and Expressions
 - Void, Boolean and String literals
 - Operations on Strings
+- Global Variables, Definitions, Initialization, Accessing and Assignment
 
 
 
@@ -10,4 +11,6 @@ CURRENT:
 PLANNED:
 - Concatenation os String and Non-String
 - String Interpolation
-- String utils
+- String Utils
+- Actual Errors
+- Arrays

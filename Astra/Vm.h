@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include "Lexer.h"
+#include <unordered_map>
 
 enum Result {
 	OK,
@@ -26,7 +27,7 @@ private:
 	Value pop_stack();
 	Value stack_top();
 	Value peek(int distance);
-	void runtime_error(const char* format, ...);
+	void runtime_error(const std::string& format, ...);
 	bool is_false(Value val) {
 		return is_void(val) || (is_bool(val) && !get_bool(val)) || (is_number(val) && !get_number(val));
 	}
@@ -34,4 +35,6 @@ private:
 	void concatenate_string();
 	void free_objects();
 	void free_object(Object* obj);
+	
+	std::unordered_map<std::string, Value> globals;
 };

@@ -25,7 +25,8 @@ enum ParseFn {
 	FN_BINARY,
 	FN_NUMBER,
 	FN_LITERAL,
-	FN_STRING
+	FN_STRING,
+	FN_VARIABLE
 };
 
 struct ParseRule {
@@ -90,4 +91,17 @@ private:
 		emit_byte(OC_RETURN);
 	}
 	void emit_bytes(uint8_t b1, uint8_t b2);
+	void declaration();
+	void statement();
+	void print_statement();
+	bool match(TokenType type);
+	void expression_statement();
+	void synchronize();
+	void variable_declaration();
+	uint8_t parse_variable(const std::string& error);
+	void define_variable(uint8_t);
+	void variable();
+	void named_variable(Token name);
+	uint8_t identifier_constant(Token* name);
+	bool can_assign;
 };

@@ -16,7 +16,12 @@ enum OpCode {
 	OC_NOT,
 	OC_EQUAL,
 	OC_LESS,
-	OC_GREATER
+	OC_GREATER,
+	OC_PRINT,
+	OC_POP,
+	OC_DEFINE_GLOBAL,
+	OC_GET_GLOBAL,
+	OC_SET_GLOBAL
 };
 
 class Chunk {

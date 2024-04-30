@@ -59,6 +59,16 @@ int Chunk::disassemble_instruction(int offset) {
 		return simple_instruction("OP_GREATER", offset);
 	case OC_LESS:
 		return simple_instruction("OP_LESS", offset);
+	case OC_PRINT:
+		return simple_instruction("OP_PRINT", offset);
+	case OC_POP:
+		return simple_instruction("OP_POP", offset);
+	case OC_DEFINE_GLOBAL:
+		return constant_instruction("OP_DEFINE_GLOBAL", offset);
+	case OC_GET_GLOBAL:
+		return constant_instruction("OP_GET_GLOBAL", offset);
+	case OC_SET_GLOBAL:
+		return constant_instruction("OP_SET_GLOBAL", offset);
 	default:
 		std::cout << "Unkown OpCode " << instruction;
 		return offset + 1;

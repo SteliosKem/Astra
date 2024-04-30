@@ -5,17 +5,17 @@
 Token Lexer::lex() {
 	next();
 
-    while (current_char == ' ') {                                   // Skip whitespace
-        /*if (current_char == '\n')                                 // Change line on newline character
+    while (current_char == ' ' || current_char == '\n' || current_char == '\t' || current_char == '/') {                                   // Skip whitespace
+        if (current_char == '\n')                                 // Change line on newline character
             line++;
         else if (current_char == '/') {                             // Skip comments
-            if (!at_end() && source[current + 1] == '/') {
-                while (current_char != '\n' && !at_end())
-                    current_char = next();
+            if (pos < source.size() && source[pos + 1] == '/') {
+                while (current_char != '\n' && pos < source.size())
+                    next();
             }
             else
                 break;
-        }*/
+        }
         next();
     }
     if (current_char == '\0') return Token(TOKEN_EOF, "", line);    // If at end return EOF
