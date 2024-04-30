@@ -24,7 +24,8 @@ enum ParseFn {
 	FN_UNARY,
 	FN_BINARY,
 	FN_NUMBER,
-	FN_LITERAL
+	FN_LITERAL,
+	FN_STRING
 };
 
 struct ParseRule {
@@ -60,6 +61,7 @@ public:
 	void unary();
 	void binary();
 	void literal();
+	void string();
 	void parse_precedence(Precedence precedence);
 
 	ParseRule get_rule(TokenType type) {
@@ -70,6 +72,7 @@ public:
 
 	void emit_constant(Value value) {
 		emit_bytes(OC_CONSTANT, make_constant(value));
+		
 	}
 
 	void emit_byte(uint8_t byte) {

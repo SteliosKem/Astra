@@ -1,6 +1,8 @@
 #include "Compiler.h"
 #include "Lexer.h"
 #include <iostream>
+#include <memory>
+#include "Value.h"
 
 Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	lexer.source = src;
@@ -24,7 +26,7 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	rules[TOKEN_LESS] = ParseRule{ FN_NONE,     FN_BINARY,   PREC_COMPARISON };
 	rules[TOKEN_LESS_EQUAL] = ParseRule{ FN_NONE,     FN_BINARY,   PREC_COMPARISON };
 	rules[TOKEN_ID] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
-	rules[TOKEN_STR] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_STR] = ParseRule{ FN_STRING,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_NUM] = ParseRule{ FN_NUMBER,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_AND] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_CLASS] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
@@ -216,6 +218,8 @@ void Compiler::call_prec_function(ParseFn func) {
 		return number();
 	case FN_LITERAL:
 		return literal();
+	case FN_STRING:
+		return string();
 	default:
 		break;
 	}
@@ -245,7 +249,7 @@ void Compiler::consume(TokenType type, const std::string& message) {
 
 void Compiler::literal() {
 	switch (parser.previous_token.type) {
-	case TOKEN_FALSE: 
+	case TOKEN_FALSE:
 		emit_byte(OC_FALSE);
 		break;
 	case TOKEN_VOID:
@@ -257,4 +261,8 @@ void Compiler::literal() {
 	default:
 		return;
 	}
+}
+
+void Compiler::string() {
+	emit_constant(make_object(new String(parser.previous_token.value)));
 }

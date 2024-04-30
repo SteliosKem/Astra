@@ -66,8 +66,15 @@ Result VM::run() {
 			std::cout << std::endl;
 			return Result::OK;
 		case OC_ADD:
-			res = binary_operation(VALUE_NUMBER, TOKEN_PLUS);
+		{
+			if (is_string(peek(0)) && is_string(peek(1))) concatenate_string();
+			else if (is_number(peek(0)) && is_number(peek(1))) res = binary_operation(VALUE_NUMBER, TOKEN_PLUS);
+			else {
+				runtime_error("Cannot operate on these types");
+				return RUNTIME_ERROR;
+			}
 			break;
+		}
 		case OC_SUBTRACT:
 			res = binary_operation(VALUE_NUMBER, TOKEN_MINUS);
 			break;
@@ -125,7 +132,20 @@ Result VM::run() {
 }
 
 void VM::free() {
+	free_objects();
+}
 
+void VM::free_objects() {
+	Object* obj = objects;
+	while(obj != nullptr) {
+		Object* next = obj->next;
+		free_object(obj);
+		obj = next;
+	}
+}
+
+void VM::free_object(Object* obj) {
+	delete obj;
 }
 
 Value VM::pop_stack() {
@@ -182,7 +202,23 @@ bool VM::values_equal(Value a, Value b) {
 		return true;
 	case VALUE_NUMBER:
 		return get_number(a) == get_number(b);
+	case VALUE_OBJECT:
+	{
+		String* a_str = get_string(a);
+		String* b_str = get_string(b);
+		return a_str->str == b_str->str;
+	}
 	default:
 		return false;
 	}
+}
+
+void VM::concatenate_string() {
+	String* b = get_string(pop_stack());
+	String* a = get_string(pop_stack());
+	String* new_str = new String(a->str + b->str);
+	new_str->next = objects;
+	objects = new_str;
+	stack.push_back(make_object(new_str));
+	delete a, b;
 }

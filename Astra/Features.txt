@@ -1,0 +1,13 @@
+CURRENT:
+- Arithmetic Operations and Expressions
+- Comparison Operations and Expressions
+- Void, Boolean and String literals
+- Operations on Strings
+
+
+
+
+PLANNED:
+- Concatenation os String and Non-String
+- String Interpolation
+- String utils

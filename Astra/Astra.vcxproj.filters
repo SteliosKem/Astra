@@ -50,5 +50,11 @@
     <ClInclude Include="Lexer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Object.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Features.txt" />
   </ItemGroup>
 </Project>
