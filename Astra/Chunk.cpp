@@ -69,6 +69,10 @@ int Chunk::disassemble_instruction(int offset) {
 		return constant_instruction("OP_GET_GLOBAL", offset);
 	case OC_SET_GLOBAL:
 		return constant_instruction("OP_SET_GLOBAL", offset);
+	case OC_GET_LOCAL:
+		return byte_instruction("OP_GET_LOCAL", offset);
+	case OC_SET_LOCAL:
+		return byte_instruction("OP_SET_LOCAL", offset);
 	default:
 		std::cout << "Unkown OpCode " << instruction;
 		return offset + 1;
@@ -92,5 +96,11 @@ int Chunk::constant_instruction(const char* name, int offset) {
 	std::cout << name << " " << constant;
 	print_value(constants.values[constant]);
 	std::cout << std::endl;
+	return offset + 2;
+}
+
+int Chunk::byte_instruction(const char* name, int offset) {
+	uint8_t slot = code[offset + 1];
+	std::cout << name << " " << slot;
 	return offset + 2;
 }

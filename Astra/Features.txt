@@ -4,7 +4,7 @@ CURRENT:
 - Void, Boolean and String literals
 - Operations on Strings
 - Global Variables, Definitions, Initialization, Accessing and Assignment
-
+- Local Variables
 
 
 
@@ -14,3 +14,5 @@ PLANNED:
 - String Utils
 - Actual Errors
 - Arrays
+- ML file and external VM
+- Making binaries with VM

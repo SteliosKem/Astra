@@ -159,6 +159,18 @@ Result VM::run() {
 			globals[name->str] = peek(0);
 			break;
 		}
+		case OC_GET_LOCAL:
+		{
+			uint8_t slot = chunk->code[program_counter++];
+			stack.push_back(stack[slot]);
+			break;
+		}
+		case OC_SET_LOCAL:
+		{
+			uint8_t slot = chunk->code[program_counter++];
+			stack[slot] = peek(0);
+			break;
+		}
 		}
 		
 		if (res == RUNTIME_ERROR) {

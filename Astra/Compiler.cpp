@@ -294,6 +294,11 @@ void Compiler::statement() {
 	if (match(TOKEN_PRINT)) {
 		print_statement();
 	}
+	else if (match(TOKEN_L_BRACE)) {
+		new_scope();
+		compount_statement();
+		end_scope();
+	}
 	else {
 		expression_statement();
 	}
@@ -351,10 +356,18 @@ void Compiler::variable_declaration() {
 
 uint8_t Compiler::parse_variable(const std::string& error) {
 	consume(TOKEN_ID, error);
+
+	declare_variable();
+	if (scope_depth > 0) return 0;
+
 	return make_constant(make_object(new String(parser.previous_token.value)));
 }
 
 void Compiler::define_variable(uint8_t global) {
+	if (scope_depth > 0) {
+		make_initialized();
+		return;
+	}
 	emit_bytes(OC_DEFINE_GLOBAL, global);
 }
 
@@ -363,17 +376,97 @@ void Compiler::variable() {
 }
 
 void Compiler::named_variable(Token name) {
-	uint8_t arg = identifier_constant(&name);
+	uint8_t get_op, set_op;
+	int arg = resolve_local(name);
+	std::cout << arg;
+	if (arg != -1) {
+		get_op = OC_GET_LOCAL;
+		set_op = OC_SET_LOCAL;
+	}
+	else {
+		arg = identifier_constant(&name);
+		get_op = OC_GET_GLOBAL;
+		set_op = OC_SET_GLOBAL;
+	}
 
 	if (can_assign && match(TOKEN_EQUAL)) {
 		expression();
-		emit_bytes(OC_SET_GLOBAL, arg);
+		emit_bytes(set_op, (uint8_t)arg);
 	}
 	else {
-		emit_bytes(OC_GET_GLOBAL, arg);
+		emit_bytes(get_op, (uint8_t)arg);
 	}
 }
 
 uint8_t Compiler::identifier_constant(Token* name) {
 	return make_constant(make_object(new String(name->value)));
+}
+
+void Compiler::new_scope() {
+	scope_depth++;
+}
+void Compiler::compount_statement() {
+	while (parser.current_token.type != TOKEN_R_BRACE && parser.current_token.type != TOKEN_EOF) {
+		declaration();
+	}
+
+	consume(TOKEN_R_BRACE, "Expected '}'");
+}
+void Compiler::end_scope() {
+	scope_depth--;
+
+	while (local_count > 0 && locals[local_count - 1].depth > scope_depth) {
+		emit_byte(OC_POP);
+		local_count--;
+	}
+}
+
+void Compiler::declare_variable() {
+	
+	if (scope_depth == 0) return;
+	Token name = parser.previous_token;
+	for (int i = local_count - 1; i >= 0; i--) {
+		Local* local = &locals[i];
+		if (local->depth != -1 && local->depth < scope_depth) break;
+
+		if (equal_identifiers(name, local->name)) error("Variable already exists in scope");
+	}
+	
+	add_local(name);
+}
+
+void Compiler::add_local(Token name) {
+	if (local_count == UINT8_MAX + 1) {
+		error("Too many local variables in scope");
+		return;
+	}
+
+	Local* local = &locals[local_count++];
+	local->name = name;
+	local->depth = -1;
+	local->depth = scope_depth;
+}
+
+bool Compiler::equal_identifiers(Token& a, Token& b) {
+	if (a.value == b.value) return true;
+	return false;
+}
+
+int Compiler::resolve_local(Token name) {
+	for (int i = local_count - 1; i >= 0; i--) {
+		Local* local = &locals[i];
+		
+		if (equal_identifiers(name, local->name)) {
+			if (local->depth == -1) error("Tried accessing variable in it's initialization");
+			
+			return i;
+			
+		}
+	}
+
+	return -1;
+}
+
+void Compiler::make_initialized() {
+	locals[local_count - 1].depth = scope_depth;
 }

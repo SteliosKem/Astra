@@ -21,7 +21,9 @@ enum OpCode {
 	OC_POP,
 	OC_DEFINE_GLOBAL,
 	OC_GET_GLOBAL,
-	OC_SET_GLOBAL
+	OC_SET_GLOBAL,
+	OC_GET_LOCAL,
+	OC_SET_LOCAL
 };
 
 class Chunk {
@@ -39,4 +41,5 @@ private:
 	int disassemble_instruction(int offset);
 	int constant_instruction(const char* name, int offset);
 	static int simple_instruction(const char* name, int offset);
+	int byte_instruction(const char* name, int offset);
 };
