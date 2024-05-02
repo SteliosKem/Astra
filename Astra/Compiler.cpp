@@ -12,6 +12,7 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	rules[TOKEN_R_BRACE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_COMMA] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_DOT] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_DOUBLE_DOT] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_MINUS] = ParseRule{ FN_UNARY,     FN_BINARY,   PREC_TERM };
 	rules[TOKEN_PLUS] = ParseRule{ FN_NONE,     FN_BINARY,   PREC_TERM };
 	rules[TOKEN_SEMICOLON] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
@@ -50,7 +51,7 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 
 bool Compiler::compile(Chunk* chunk) {
 	compiling_chunk = chunk;
-
+	parser.current_token = Token(TOKEN_AND, "", 0);
 	/*while (true) {
 		Token token = lexer.lex();
 		if (token.line != lexer.line) {
@@ -294,6 +295,9 @@ void Compiler::statement() {
 	if (match(TOKEN_PRINT)) {
 		print_statement();
 	}
+	else if (match(TOKEN_IF)) {
+		if_statement();
+	}
 	else if (match(TOKEN_L_BRACE)) {
 		new_scope();
 		compount_statement();
@@ -469,4 +473,38 @@ int Compiler::resolve_local(Token name) {
 
 void Compiler::make_initialized() {
 	locals[local_count - 1].depth = scope_depth;
+}
+
+void Compiler::if_statement() {
+	expression();
+	
+	int then_jmp = emit_jump(OC_JMP_IF_FALSE);
+	emit_byte(OC_POP);
+	
+	statement();
+
+	int else_jmp = emit_jump(OC_JMP);
+
+	patch_jump(then_jmp);
+	emit_byte(OC_POP);
+	if (match(TOKEN_ELSE)) statement();
+	patch_jump(else_jmp);
+}
+
+int Compiler::emit_jump(uint8_t instruction) {
+	emit_byte(instruction);
+	emit_byte(0xff);
+	emit_byte(0xff);
+	return compiling_chunk->code.size() - 2;
+}
+
+void Compiler::patch_jump(int offset) {
+	int jump = compiling_chunk->code.size() - offset - 2;
+
+	if (jump > UINT16_MAX) {
+		error("Can't jump this big");
+	}
+
+	compiling_chunk->code[offset] = (jump >> 8) & 0xff;
+	compiling_chunk->code[offset + 1] = jump & 0xff;
 }

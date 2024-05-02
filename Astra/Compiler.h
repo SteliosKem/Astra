@@ -51,7 +51,7 @@ struct Parser {
 
 class Compiler {
 public:
-	ParseRule rules[40];
+	ParseRule rules[41];
 	Parser& parser;
 	Lexer lexer;
 	Chunk* compiling_chunk;
@@ -115,6 +115,7 @@ private:
 	void expression_statement();
 	void variable_declaration();
 	void compount_statement();
+	void if_statement();
 
 	// VARIABLES
 	uint8_t parse_variable(const std::string& error);
@@ -134,6 +135,10 @@ private:
 	void end_scope();
 	void add_local(Token name);
 	int resolve_local(Token name);
+
+	// IF
+	int emit_jump(uint8_t instruction);
+	void patch_jump(int offset);
 	
 
 	bool equal_identifiers(Token& a, Token& b);

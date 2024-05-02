@@ -73,6 +73,10 @@ int Chunk::disassemble_instruction(int offset) {
 		return byte_instruction("OP_GET_LOCAL", offset);
 	case OC_SET_LOCAL:
 		return byte_instruction("OP_SET_LOCAL", offset);
+	case OC_JMP:
+		return jump_instruction("OP_JMP", 1, offset);
+	case OC_JMP_IF_FALSE:
+		return jump_instruction("OP_JMP_IF_FALSE", 1, offset);
 	default:
 		std::cout << "Unkown OpCode " << instruction;
 		return offset + 1;
@@ -103,4 +107,11 @@ int Chunk::byte_instruction(const char* name, int offset) {
 	uint8_t slot = code[offset + 1];
 	std::cout << name << " " << slot;
 	return offset + 2;
+}
+
+int Chunk::jump_instruction(const char* name, int sign, int offset) {
+	uint16_t jump = (uint16_t)(code[offset + 1] << 8);
+	jump |= code[offset + 2];
+	std::cout << name << " " << offset << " -> " << offset + 3 + sign * jump;
+	return offset + 3;
 }

@@ -171,6 +171,20 @@ Result VM::run() {
 			stack[slot] = peek(0);
 			break;
 		}
+		case OC_JMP_IF_FALSE:
+		{
+			program_counter += 2;
+			uint16_t offset = (chunk->code[program_counter], (uint16_t)(chunk->code[program_counter - 2] << 8 | chunk->code[program_counter - 1]));
+			if (is_false(peek(0))) program_counter += offset;
+			break;
+		}
+		case OC_JMP:
+		{
+			program_counter += 2;
+			uint16_t offset = (chunk->code[program_counter], (uint16_t)(chunk->code[program_counter - 2] << 8 | chunk->code[program_counter - 1]));
+			program_counter += offset;
+			break;
+		}
 		}
 		
 		if (res == RUNTIME_ERROR) {
