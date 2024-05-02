@@ -5,7 +5,9 @@ CURRENT:
 - Operations on Strings
 - Global Variables, Definitions, Initialization, Accessing and Assignment
 - Local Variables
-
+- Jump instructions, if and else statements
+- Logical Operations
+- While Loop
 
 
 PLANNED:
@@ -16,3 +18,6 @@ PLANNED:
 - Arrays
 - ML file and external VM
 - Making binaries with VM
+- Increment/Decrement Operators and +=, -=, /=, *=, ^
+- Break/Continue
+- Switch

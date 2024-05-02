@@ -46,6 +46,7 @@ Result VM::binary_operation(ValueType type, TokenType op) {
 }
 
 Result VM::run() {
+	
 	while (true) {
 #ifdef DEBUG_TRACE_EXECUTION
 		std::cout << "        ";
@@ -174,15 +175,22 @@ Result VM::run() {
 		case OC_JMP_IF_FALSE:
 		{
 			program_counter += 2;
-			uint16_t offset = (chunk->code[program_counter], (uint16_t)(chunk->code[program_counter - 2] << 8 | chunk->code[program_counter - 1]));
+			uint16_t offset = (uint16_t)(chunk->code[program_counter - 2] << 8 | chunk->code[program_counter - 1]);
 			if (is_false(peek(0))) program_counter += offset;
 			break;
 		}
 		case OC_JMP:
 		{
 			program_counter += 2;
-			uint16_t offset = (chunk->code[program_counter], (uint16_t)(chunk->code[program_counter - 2] << 8 | chunk->code[program_counter - 1]));
+			uint16_t offset = (uint16_t)(chunk->code[program_counter - 2] << 8 | chunk->code[program_counter - 1]);
 			program_counter += offset;
+			break;
+		}
+		case OC_LOOP:
+		{
+			program_counter += 2;
+			uint16_t offset = (uint16_t)(chunk->code[program_counter - 2] << 8 | chunk->code[program_counter - 1]);
+			program_counter -= offset;
 			break;
 		}
 		}

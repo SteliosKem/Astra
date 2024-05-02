@@ -77,6 +77,8 @@ int Chunk::disassemble_instruction(int offset) {
 		return jump_instruction("OP_JMP", 1, offset);
 	case OC_JMP_IF_FALSE:
 		return jump_instruction("OP_JMP_IF_FALSE", 1, offset);
+	case OC_LOOP:
+		return jump_instruction("OP_LOOP", -1, offset);
 	default:
 		std::cout << "Unkown OpCode " << instruction;
 		return offset + 1;

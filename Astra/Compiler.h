@@ -31,7 +31,9 @@ enum ParseFn {
 	FN_NUMBER,
 	FN_LITERAL,
 	FN_STRING,
-	FN_VARIABLE
+	FN_VARIABLE,
+	FN_AND,
+	FN_OR
 };
 
 struct ParseRule {
@@ -142,4 +144,13 @@ private:
 	
 
 	bool equal_identifiers(Token& a, Token& b);
+
+	// LOGICAL OPERATIONS
+	void and_operation();
+	void or_operation();
+
+	// LOOPS
+	void while_statement();
+	void for_statement();
+	void emit_loop(int loop_start);
 };

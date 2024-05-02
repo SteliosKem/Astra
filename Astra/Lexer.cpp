@@ -34,7 +34,7 @@ Token Lexer::lex() {
         case '+': return Token(TOKEN_PLUS, "", line);
         case '/': return Token(TOKEN_SLASH, "", line);
         case '*': return Token(TOKEN_STAR, "", line);
-        //case ':': return Token(TOKEN_DOUBLE_DOT, "", line);
+        case ':': return Token(TOKEN_DOUBLE_DOT, "", line);
         case '!':
             return Token(
                 match('=') ? TOKEN_BANG_EQUAL : TOKEN_BANG, "", line);

@@ -25,7 +25,8 @@ enum OpCode {
 	OC_GET_LOCAL,
 	OC_SET_LOCAL,
 	OC_JMP_IF_FALSE,
-	OC_JMP
+	OC_JMP,
+	OC_LOOP
 };
 
 class Chunk {
@@ -45,4 +46,11 @@ private:
 	static int simple_instruction(const char* name, int offset);
 	int byte_instruction(const char* name, int offset);
 	int jump_instruction(const char* name, int sign, int offset);
+};
+
+class Function : public Object {
+public:
+	int arity;
+	Chunk chunk;
+	std::string name;
 };

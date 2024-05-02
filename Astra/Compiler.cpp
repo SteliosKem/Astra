@@ -29,7 +29,7 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	rules[TOKEN_ID] = ParseRule{ FN_VARIABLE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_STR] = ParseRule{ FN_STRING,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_NUM] = ParseRule{ FN_NUMBER,     FN_NONE,   PREC_NONE };
-	rules[TOKEN_AND] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_AND] = ParseRule{ FN_NONE,     FN_AND,   PREC_AND };
 	rules[TOKEN_CLASS] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_ELSE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_FALSE] = ParseRule{ FN_LITERAL,     FN_NONE,   PREC_NONE };
@@ -37,7 +37,7 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	rules[TOKEN_FUN] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_IF] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_VOID] = ParseRule{ FN_LITERAL,     FN_NONE,   PREC_NONE };
-	rules[TOKEN_OR] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_OR] = ParseRule{ FN_NONE,     FN_OR,   PREC_OR };
 	rules[TOKEN_PRINT] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_RETURN] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_SUPER] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
@@ -235,6 +235,10 @@ void Compiler::call_prec_function(ParseFn func) {
 		return string();
 	case FN_VARIABLE:
 		return variable();
+	case FN_AND:
+		return and_operation();
+	case FN_OR:
+		return or_operation();
 	default:
 		break;
 	}
@@ -297,6 +301,12 @@ void Compiler::statement() {
 	}
 	else if (match(TOKEN_IF)) {
 		if_statement();
+	}
+	else if (match(TOKEN_WHILE)) {
+		while_statement();
+	}
+	else if (match(TOKEN_FOR)) {
+		for_statement();
 	}
 	else if (match(TOKEN_L_BRACE)) {
 		new_scope();
@@ -382,7 +392,6 @@ void Compiler::variable() {
 void Compiler::named_variable(Token name) {
 	uint8_t get_op, set_op;
 	int arg = resolve_local(name);
-	std::cout << arg;
 	if (arg != -1) {
 		get_op = OC_GET_LOCAL;
 		set_op = OC_SET_LOCAL;
@@ -507,4 +516,86 @@ void Compiler::patch_jump(int offset) {
 
 	compiling_chunk->code[offset] = (jump >> 8) & 0xff;
 	compiling_chunk->code[offset + 1] = jump & 0xff;
+}
+
+void Compiler::and_operation() {
+	int end_jump = emit_jump(OC_JMP_IF_FALSE);
+
+	emit_byte(OC_POP);
+	parse_precedence(PREC_AND);
+
+	patch_jump(end_jump);
+}
+
+void Compiler::or_operation() {
+	int else_jump = emit_jump(OC_JMP_IF_FALSE);
+	int end_jump = emit_jump(OC_JMP);
+
+	patch_jump(else_jump);
+	emit_byte(OC_POP);
+
+
+	parse_precedence(PREC_AND);
+	patch_jump(end_jump);
+}
+
+void Compiler::while_statement() {
+	int loop_start = compiling_chunk->code.size();
+	expression();
+
+	int exit_jump = emit_jump(OC_JMP_IF_FALSE);
+	emit_byte(OC_POP);
+	statement();
+	emit_loop(loop_start);
+
+	patch_jump(exit_jump);
+	emit_byte(OC_POP);
+}
+
+void Compiler::emit_loop(int loop_start) {
+	emit_byte(OC_LOOP);
+
+	int offset = compiling_chunk->code.size() - loop_start + 2;
+	if (offset > UINT16_MAX) error("Loop body is too large");
+
+	emit_byte((offset >> 8) & 0xff);
+	emit_byte(offset & 0xff);
+}
+
+void Compiler::for_statement() {
+	new_scope();
+	if (match(TOKEN_SEMICOLON));
+	else if (match(TOKEN_VAR)) {
+		variable_declaration();
+	}
+	else {
+		expression_statement();
+	}
+	int loop_start = compiling_chunk->code.size();
+	int exit_jump = -1;
+	if (!match(TOKEN_SEMICOLON)) {
+		expression();
+		consume(TOKEN_SEMICOLON, "Expected ';' after condition");
+
+		exit_jump = emit_jump(OC_JMP_IF_FALSE);
+		emit_byte(OC_POP);
+	}
+	if (!match(TOKEN_DOUBLE_DOT)) {
+		int body_jump = emit_jump(OC_JMP);
+		int increment_start = compiling_chunk->code.size();
+		expression();
+		consume(TOKEN_DOUBLE_DOT, "Expected ':'");
+		emit_byte(OC_POP);
+
+		emit_loop(loop_start);
+		loop_start = increment_start;
+		patch_jump(body_jump);
+	}
+	statement();
+	emit_loop(loop_start);
+	if (exit_jump != -1) {
+		patch_jump(exit_jump);
+		emit_byte(OC_POP);
+	}
+	end_scope();
 }
