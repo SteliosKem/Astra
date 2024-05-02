@@ -6,6 +6,10 @@
 
 Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	lexer.source = src;
+	function = new Function();
+	Local* local = &locals[local_count++];
+	local->depth = 0;
+	local->name.value = "";
 	rules[TOKEN_L_PAR] = ParseRule{ FN_GROUPING, FN_NONE, PREC_NONE };
 	rules[TOKEN_R_PAR] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_L_BRACE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
@@ -49,8 +53,11 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	rules[TOKEN_EOF] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 }
 
-bool Compiler::compile(Chunk* chunk) {
-	compiling_chunk = chunk;
+Function* get_function(Value val) {
+	return (Function*)get_object(val);
+}
+
+Function* Compiler::compile(std::string src) {
 	parser.current_token = Token(TOKEN_AND, "", 0);
 	/*while (true) {
 		Token token = lexer.lex();
@@ -69,9 +76,8 @@ bool Compiler::compile(Chunk* chunk) {
 	while (!match(TOKEN_EOF)) {
 		declaration();
 	}
-	end();
-	return !parser.error;
-	
+	Function* func = end();
+	return parser.error ? nullptr : func;
 }
 
 bool Compiler::match(TokenType type) {
@@ -111,7 +117,7 @@ void Compiler::error_at(Token* token, const std::string& message) {
 }
 
 uint8_t Compiler::make_constant(Value value) {
-	int constant = compiling_chunk->add_constant(value);
+	int constant = current_chunk()->add_constant(value);
 	if (constant > UINT8_MAX) {
 		error("Too many constants in one chunk");
 		return 0;
@@ -207,13 +213,15 @@ void Compiler::emit_bytes(uint8_t b1, uint8_t b2) {
 	emit_byte(b2);
 }
 
-void Compiler::end() {
+Function* Compiler::end() {
 	emit_return();
+	Function* func = function;
 	//#ifdef DEBUG_PRINT_CODE
 	if (!parser.error) {
-		compiling_chunk->disassemble("code");
+		current_chunk()->disassemble(func->name != "" ? function->name : "<file>");
 	}
 	//#endif
+	return func;
 }
 
 void Compiler::call_prec_function(ParseFn func) {
@@ -504,18 +512,18 @@ int Compiler::emit_jump(uint8_t instruction) {
 	emit_byte(instruction);
 	emit_byte(0xff);
 	emit_byte(0xff);
-	return compiling_chunk->code.size() - 2;
+	return current_chunk()->code.size() - 2;
 }
 
 void Compiler::patch_jump(int offset) {
-	int jump = compiling_chunk->code.size() - offset - 2;
+	int jump = current_chunk()->code.size() - offset - 2;
 
 	if (jump > UINT16_MAX) {
 		error("Can't jump this big");
 	}
 
-	compiling_chunk->code[offset] = (jump >> 8) & 0xff;
-	compiling_chunk->code[offset + 1] = jump & 0xff;
+	current_chunk()->code[offset] = (jump >> 8) & 0xff;
+	current_chunk()->code[offset + 1] = jump & 0xff;
 }
 
 void Compiler::and_operation() {
@@ -540,7 +548,7 @@ void Compiler::or_operation() {
 }
 
 void Compiler::while_statement() {
-	int loop_start = compiling_chunk->code.size();
+	int loop_start = current_chunk()->code.size();
 	expression();
 
 	int exit_jump = emit_jump(OC_JMP_IF_FALSE);
@@ -555,7 +563,7 @@ void Compiler::while_statement() {
 void Compiler::emit_loop(int loop_start) {
 	emit_byte(OC_LOOP);
 
-	int offset = compiling_chunk->code.size() - loop_start + 2;
+	int offset = current_chunk()->code.size() - loop_start + 2;
 	if (offset > UINT16_MAX) error("Loop body is too large");
 
 	emit_byte((offset >> 8) & 0xff);
@@ -571,7 +579,7 @@ void Compiler::for_statement() {
 	else {
 		expression_statement();
 	}
-	int loop_start = compiling_chunk->code.size();
+	int loop_start = current_chunk()->code.size();
 	int exit_jump = -1;
 	if (!match(TOKEN_SEMICOLON)) {
 		expression();
@@ -582,7 +590,7 @@ void Compiler::for_statement() {
 	}
 	if (!match(TOKEN_DOUBLE_DOT)) {
 		int body_jump = emit_jump(OC_JMP);
-		int increment_start = compiling_chunk->code.size();
+		int increment_start = current_chunk()->code.size();
 		expression();
 		consume(TOKEN_DOUBLE_DOT, "Expected ':'");
 		emit_byte(OC_POP);

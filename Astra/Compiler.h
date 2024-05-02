@@ -4,6 +4,20 @@
 #include "Lexer.h"
 #include <functional>
 
+class Function : public Object {
+public:
+	int arity;
+	Chunk chunk;
+	std::string name;
+};
+
+Function* get_function(Value val);
+
+enum FunctionType {
+	TYPE_FUNCTION,
+	TYPE_SCRIPT
+};
+
 enum Precedence {
 	PREC_NONE,
 	PREC_ASSIGNMENT,
@@ -58,10 +72,14 @@ public:
 	Lexer lexer;
 	Chunk* compiling_chunk;
 
+	Chunk* current_chunk() {
+		return &function->chunk;
+	}
+
 	Compiler(const std::string& src, Parser& _parser);
 
 	// HELPER FUNCTIONS
-	bool compile(Chunk* chunk);
+	Function* compile(std::string src);
 	void next();
 	void consume(TokenType type, const std::string& message);
 	bool match(TokenType type);
@@ -80,11 +98,11 @@ public:
 	}
 
 	void emit_byte(uint8_t byte) {
-		compiling_chunk->write(byte, parser.previous_token.line);
+		current_chunk()->write(byte, parser.previous_token.line);
 	}
 
 	uint8_t make_constant(Value value);
-	void end();
+	Function* end();
 
 
 	// EXPRESSIONS, OPERATIONS, LITERALS
@@ -153,4 +171,8 @@ private:
 	void while_statement();
 	void for_statement();
 	void emit_loop(int loop_start);
+
+	// FUNCTIONS
+	Function* function = nullptr;
+	FunctionType function_type = TYPE_SCRIPT;
 };

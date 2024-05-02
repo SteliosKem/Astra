@@ -1,5 +1,5 @@
 #include "Vm.h"
-#include "Compiler.h"
+
 #include <iostream>
 #include <cstdarg>
 #include <format>
@@ -46,7 +46,8 @@ Result VM::binary_operation(ValueType type, TokenType op) {
 }
 
 Result VM::run() {
-	
+	CallFrame* frame = &frames[frame_count - 1];
+
 	while (true) {
 #ifdef DEBUG_TRACE_EXECUTION
 		std::cout << "        ";
@@ -62,7 +63,7 @@ Result VM::run() {
 #endif
 		uint8_t instruction;
 		Result res = OK;
-		switch (instruction = chunk->code[program_counter++]) {
+		switch (instruction = frame->function->chunk.code[frame->program_counter++]) {
 		case OC_RETURN:
 			return Result::OK;
 		case OC_ADD:
@@ -109,7 +110,7 @@ Result VM::run() {
 			break;
 		case OC_CONSTANT:
 		{
-			Value constant = chunk->constants.values[chunk->code[program_counter++]];
+			Value constant = frame->function->chunk.constants.values[frame->function->chunk.code[frame->program_counter++]];
 			stack.push_back(constant);
 			break;
 		}
@@ -131,7 +132,7 @@ Result VM::run() {
 			break;
 		case OC_DEFINE_GLOBAL:
 		{
-			String* name = get_string(chunk->constants.values[chunk->code[program_counter++]]);
+			String* name = get_string(frame->function->chunk.constants.values[frame->function->chunk.code[frame->program_counter++]]);
 			if (globals.find(name->str) != globals.end()) {
 				runtime_error(std::format("Defined already existing variable '{0}'", name->str));
 				return RUNTIME_ERROR;
@@ -142,7 +143,7 @@ Result VM::run() {
 		}
 		case OC_GET_GLOBAL:
 		{
-			String* name = get_string(chunk->constants.values[chunk->code[program_counter++]]);
+			String* name = get_string(frame->function->chunk.constants.values[frame->function->chunk.code[frame->program_counter++]]);
 			if (globals.find(name->str) == globals.end()) {
 				runtime_error(std::format("Undefined variable '{0}'", name->str));
 				return RUNTIME_ERROR;
@@ -152,7 +153,7 @@ Result VM::run() {
 		}
 		case OC_SET_GLOBAL:
 		{
-			String* name = get_string(chunk->constants.values[chunk->code[program_counter++]]);
+			String* name = get_string(frame->function->chunk.constants.values[frame->function->chunk.code[frame->program_counter++]]);
 			if (globals.find(name->str) == globals.end()) {
 				runtime_error(std::format("Undefined variable '{0}'", name->str));
 				return RUNTIME_ERROR;
@@ -162,35 +163,35 @@ Result VM::run() {
 		}
 		case OC_GET_LOCAL:
 		{
-			uint8_t slot = chunk->code[program_counter++];
-			stack.push_back(stack[slot]);
+			uint8_t slot = frame->function->chunk.code[frame->program_counter++];
+			stack.push_back(frame->slots[slot]);
 			break;
 		}
 		case OC_SET_LOCAL:
 		{
-			uint8_t slot = chunk->code[program_counter++];
-			stack[slot] = peek(0);
+			uint8_t slot = frame->function->chunk.code[frame->program_counter++];
+			frame->slots[slot] = peek(0);
 			break;
 		}
 		case OC_JMP_IF_FALSE:
 		{
-			program_counter += 2;
-			uint16_t offset = (uint16_t)(chunk->code[program_counter - 2] << 8 | chunk->code[program_counter - 1]);
-			if (is_false(peek(0))) program_counter += offset;
+			frame->program_counter += 2;
+			uint16_t offset = (uint16_t)(frame->function->chunk.code[frame->program_counter - 2] << 8 | frame->function->chunk.code[frame->program_counter - 1]);
+			if (is_false(peek(0))) frame->program_counter += offset;
 			break;
 		}
 		case OC_JMP:
 		{
-			program_counter += 2;
-			uint16_t offset = (uint16_t)(chunk->code[program_counter - 2] << 8 | chunk->code[program_counter - 1]);
-			program_counter += offset;
+			frame->program_counter += 2;
+			uint16_t offset = (uint16_t)(frame->function->chunk.code[frame->program_counter - 2] << 8 | frame->function->chunk.code[frame->program_counter - 1]);
+			frame->program_counter += offset;
 			break;
 		}
 		case OC_LOOP:
 		{
-			program_counter += 2;
-			uint16_t offset = (uint16_t)(chunk->code[program_counter - 2] << 8 | chunk->code[program_counter - 1]);
-			program_counter -= offset;
+			frame->program_counter += 2;
+			uint16_t offset = (uint16_t)(frame->function->chunk.code[frame->program_counter - 2] << 8 | frame->function->chunk.code[frame->program_counter - 1]);
+			frame->program_counter -= offset;
 			break;
 		}
 		}
@@ -227,20 +228,16 @@ Value VM::pop_stack() {
 Result VM::interpret(const std::string& input) {
 	Parser parser{};
 	Compiler compiler(input, parser);
-	Chunk new_chunk;
-	chunk = &new_chunk;
-	if (!compiler.compile(chunk)) {
-		chunk->free();
-		return COMPILE_ERROR;
-	}
-	program_counter = 0;
-	/*for (int i = 0; i < chunk->code.size(); i++) {
-		std::cout << (int)(chunk->code[i]) << std::endl;
-	}*/
-	Result result = run();
 
-	chunk->free();
-	return result;
+	Function* func = compiler.compile(input);
+	if (func == nullptr) return COMPILE_ERROR;
+
+	stack.push_back(make_object(func));
+	CallFrame* frame = &frames[frame_count++];
+	frame->function = func;
+	frame->program_counter = 0;
+	frame->slots = &stack[0];
+	return run();
 }
 
 Value VM::peek(int distance) {
@@ -254,9 +251,12 @@ void VM::runtime_error(const std::string& format, ...) {
 	//va_end(args);
 	//fputs("\n", stderr);
 
-	size_t instruction = &chunk->code[program_counter] - &chunk->code[0] - 1;
-	std::cout << " at line: " << chunk->lines[instruction] << std::endl;
+	CallFrame* frame = &frames[frame_count - 1];
+
+	size_t instruction = &frame->function->chunk.code[program_counter] - &frame->function->chunk.code[0] - 1;
+	std::cout << " at line: " << frame->function->chunk.lines[instruction] << std::endl;
 	stack = std::vector<Value>();
+	frame_count = 0;
 }
 
 Value VM::stack_top() {

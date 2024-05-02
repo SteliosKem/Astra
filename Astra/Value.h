@@ -1,8 +1,26 @@
 #pragma once
 #include <vector>
 #include <variant>
-#include "Object.h"
 #include <memory>
+#include <string>
+
+enum ObjectType {
+	OBJ_STRING,
+	OBJ_FUNCTION
+};
+
+class Object {
+public:
+	ObjectType type;
+	Object* next;
+};
+
+class String : public Object {
+public:
+	String(std::string src) : str(src) {}
+	std::string str;
+};
+
 
 enum ValueType {
 	VALUE_VOID,
@@ -37,10 +55,12 @@ bool is_void(Value val);
 bool is_number(Value val);
 bool is_object(Value val);
 bool is_string(Value val);
+bool is_function(Value val);
 
 bool get_bool(Value val);
 double get_number(Value val);
 Object* get_object(Value val);
 String* get_string(Value val);
+
 
 bool is_object_type(Value value, ObjectType type);

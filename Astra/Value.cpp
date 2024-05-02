@@ -1,5 +1,6 @@
 #include "Value.h"
 #include <iostream>
+#include "Compiler.h"
 
 void ValueArray::write(Value value) {
 	values.push_back(value);
@@ -32,6 +33,11 @@ void print_object(Value value) {
 	switch (get_object(value)->type) {
 	case OBJ_STRING:
 		std::cout << get_string(value)->str;
+		break;
+	case OBJ_FUNCTION:
+		std::string name = get_function(value)->name;
+		if (name == "") std::cout << "<file>";
+		else std::cout << "<func " << name << ">";
 		break;
 	}
 }
@@ -83,4 +89,10 @@ String* get_string(Value val) {
 
 bool is_object_type(Value value, ObjectType type) {
 	return is_object(value) && get_object(value)->type == type;
+}
+
+
+
+bool is_function(Value val) {
+	return val.type == VALUE_OBJECT && std::get<Object*>(val.value)->type == OBJ_FUNCTION;
 }

@@ -12,7 +12,7 @@ void Chunk::free() {
 	constants.free();
 }
 
-void Chunk::disassemble(const char* name) {
+void Chunk::disassemble(std::string name) {
 	std::cout << "== " << name << " ==" << std::endl;
 
 	for (int offset = 0; offset < code.size();) {

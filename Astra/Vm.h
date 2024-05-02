@@ -4,6 +4,13 @@
 #include <string>
 #include "Lexer.h"
 #include <unordered_map>
+#include "Compiler.h"
+
+struct CallFrame {
+	Function* function;
+	int program_counter;
+	Value* slots;
+};
 
 enum Result {
 	OK,
@@ -13,6 +20,8 @@ enum Result {
 
 class VM {
 public:
+	CallFrame frames[64];
+	int frame_count;
 	Chunk* chunk;
 	std::vector<Value> stack;
 

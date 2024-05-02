@@ -37,7 +37,7 @@ public:
 
 	void write(uint8_t byte, int line);								// Write byte to chunk
 	void free();
-	void disassemble(const char* name);
+	void disassemble(std::string name);
 	int add_constant(Value value);									// Add to constant pool
 	
 private:
@@ -46,11 +46,4 @@ private:
 	static int simple_instruction(const char* name, int offset);
 	int byte_instruction(const char* name, int offset);
 	int jump_instruction(const char* name, int sign, int offset);
-};
-
-class Function : public Object {
-public:
-	int arity;
-	Chunk chunk;
-	std::string name;
 };
