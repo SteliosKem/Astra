@@ -8,16 +8,18 @@ CURRENT:
 - Jump instructions, if and else statements
 - Logical Operations
 - While Loop
+- For Loop
+- +=, -=, /=, *=, ^
 
 
 PLANNED:
-- Concatenation os String and Non-String
+- Concatenation on String and Non-String
 - String Interpolation
 - String Utils
 - Actual Errors
 - Arrays
 - ML file and external VM
 - Making binaries with VM
-- Increment/Decrement Operators and +=, -=, /=, *=, ^
+- Increment/Decrement Operators 
 - Break/Continue
 - Switch

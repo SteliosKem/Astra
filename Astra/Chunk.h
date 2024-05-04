@@ -11,6 +11,7 @@ enum OpCode {
 	OC_SUBTRACT,
 	OC_MULTIPLY,
 	OC_DIVIDE,
+	OC_POWER,
 	OC_NEGATE,
 	OC_RETURN,
 	OC_NOT,
@@ -37,7 +38,7 @@ public:
 
 	void write(uint8_t byte, int line);								// Write byte to chunk
 	void free();
-	void disassemble(const char* name);
+	void disassemble(std::string name);
 	int add_constant(Value value);									// Add to constant pool
 	
 private:

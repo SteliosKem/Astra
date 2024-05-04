@@ -47,6 +47,15 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	rules[TOKEN_WHILE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_ERROR] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_EOF] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_CAP] = ParseRule{ FN_NONE,     FN_BINARY,   PREC_POWER };
+	rules[TOKEN_PLUS_EQUAL] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_MINUS_EQUAL] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_STAR_EQUAL] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_SLASH_EQUAL] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_PLUS_PLUS] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_MINUS_MINUS] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_BREAK] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_CONTINUE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 }
 
 bool Compiler::compile(Chunk* chunk) {
@@ -172,6 +181,8 @@ void Compiler::binary() {
 		break;
 	case TOKEN_SLASH:
 		emit_byte(OC_DIVIDE);
+	case TOKEN_CAP:
+		emit_byte(OC_POWER);
 		break;
 	default:
 		return;
@@ -198,6 +209,18 @@ void Compiler::parse_precedence(Precedence precedence) {
 	}
 
 	if (can_assign && match(TOKEN_EQUAL)) {
+		error("Invalid assignment target");
+	}
+	else if (can_assign && match(TOKEN_PLUS_EQUAL)) {
+		error("Invalid assignment target");
+	}
+	else if (can_assign && match(TOKEN_MINUS_EQUAL)) {
+		error("Invalid assignment target");
+	}
+	else if (can_assign && match(TOKEN_SLASH_EQUAL)) {
+		error("Invalid assignment target");
+	}
+	else if (can_assign && match(TOKEN_STAR_EQUAL)) {
 		error("Invalid assignment target");
 	}
 }
@@ -298,6 +321,12 @@ void Compiler::declaration() {
 void Compiler::statement() {
 	if (match(TOKEN_PRINT)) {
 		print_statement();
+	}
+	else if (match(TOKEN_BREAK)) {
+		break_statement();
+	}
+	else if (match(TOKEN_CONTINUE)) {
+		continue_statement();
 	}
 	else if (match(TOKEN_IF)) {
 		if_statement();
@@ -406,6 +435,30 @@ void Compiler::named_variable(Token name) {
 		expression();
 		emit_bytes(set_op, (uint8_t)arg);
 	}
+	else if (can_assign && match(TOKEN_PLUS_EQUAL)) {
+		emit_bytes(get_op, (uint8_t)arg);
+		expression();
+		emit_byte(OC_ADD);
+		emit_bytes(set_op, (uint8_t)arg);
+	}
+	else if (can_assign && match(TOKEN_MINUS_EQUAL)) {
+		emit_bytes(get_op, (uint8_t)arg);
+		expression();
+		emit_byte(OC_SUBTRACT);
+		emit_bytes(set_op, (uint8_t)arg);
+	}
+	else if (can_assign && match(TOKEN_STAR_EQUAL)) {
+		emit_bytes(get_op, (uint8_t)arg);
+		expression();
+		emit_byte(OC_MULTIPLY);
+		emit_bytes(set_op, (uint8_t)arg);
+	}
+	else if (can_assign && match(TOKEN_SLASH_EQUAL)) {
+		emit_bytes(get_op, (uint8_t)arg);
+		expression();
+		emit_byte(OC_DIVIDE);
+		emit_bytes(set_op, (uint8_t)arg);
+	}
 	else {
 		emit_bytes(get_op, (uint8_t)arg);
 	}
@@ -500,11 +553,13 @@ void Compiler::if_statement() {
 	patch_jump(else_jmp);
 }
 
-int Compiler::emit_jump(uint8_t instruction) {
+int Compiler::emit_jump(uint8_t instruction, int pos) {
 	emit_byte(instruction);
 	emit_byte(0xff);
 	emit_byte(0xff);
-	return compiling_chunk->code.size() - 2;
+	if(pos==-1)
+		return compiling_chunk->code.size() - 2;
+	return pos - 2;
 }
 
 void Compiler::patch_jump(int offset) {
@@ -540,16 +595,51 @@ void Compiler::or_operation() {
 }
 
 void Compiler::while_statement() {
-	int loop_start = compiling_chunk->code.size();
+	int surrounding_loop_start = current_loop_start;
+	int surrounding_scope_depth = current_loop_scope_depth;
+	current_loop_start = compiling_chunk->code.size();
+	current_loop_scope_depth = scope_depth;
 	expression();
 
 	int exit_jump = emit_jump(OC_JMP_IF_FALSE);
+	current_exit_jump = exit_jump;
 	emit_byte(OC_POP);
 	statement();
-	emit_loop(loop_start);
-
+	emit_loop(current_loop_start);
+	
 	patch_jump(exit_jump);
+	
 	emit_byte(OC_POP);
+	if (break_pos != -1) {
+		patch_jump(break_pos);
+		break_pos = -1;
+	}
+	current_loop_start = surrounding_loop_start;
+	current_loop_scope_depth = surrounding_scope_depth;
+}
+
+void Compiler::break_statement() {
+	if (current_loop_start == -1) {
+		error("Break statement outside of loop");
+		return;
+	}
+	consume(TOKEN_SEMICOLON, "Expected ';' after expression");
+	for (int i = local_count - 1; i >= 0 && locals[i].depth > current_loop_scope_depth; i--)
+		emit_byte(OC_POP);
+	break_pos = emit_jump(OC_JMP);
+	emit_byte(OC_POP);
+}
+
+void Compiler::continue_statement() {
+	if (current_loop_start == -1) {
+		error("Continue statement outside of loop");
+		return;
+	}
+	consume(TOKEN_SEMICOLON, "Expected ';' after expression");
+	for (int i = local_count - 1; i >= 0 && locals[i].depth > current_loop_scope_depth; i--)
+		emit_byte(OC_POP);
+	
+	emit_loop(current_loop_start);
 }
 
 void Compiler::emit_loop(int loop_start) {
@@ -564,6 +654,7 @@ void Compiler::emit_loop(int loop_start) {
 
 void Compiler::for_statement() {
 	new_scope();
+
 	if (match(TOKEN_SEMICOLON));
 	else if (match(TOKEN_VAR)) {
 		variable_declaration();
@@ -571,13 +662,17 @@ void Compiler::for_statement() {
 	else {
 		expression_statement();
 	}
-	int loop_start = compiling_chunk->code.size();
+	int surrounding_loop_start = current_loop_start;
+	int surrounding_scope_depth = current_loop_scope_depth;
+	current_loop_start = compiling_chunk->code.size();
+	current_loop_scope_depth = scope_depth;
 	int exit_jump = -1;
 	if (!match(TOKEN_SEMICOLON)) {
 		expression();
 		consume(TOKEN_SEMICOLON, "Expected ';' after condition");
 
 		exit_jump = emit_jump(OC_JMP_IF_FALSE);
+		current_exit_jump = exit_jump;
 		emit_byte(OC_POP);
 	}
 	if (!match(TOKEN_DOUBLE_DOT)) {
@@ -587,15 +682,23 @@ void Compiler::for_statement() {
 		consume(TOKEN_DOUBLE_DOT, "Expected ':'");
 		emit_byte(OC_POP);
 
-		emit_loop(loop_start);
-		loop_start = increment_start;
+		emit_loop(current_loop_start);
+		current_loop_start = increment_start;
 		patch_jump(body_jump);
 	}
 	statement();
-	emit_loop(loop_start);
+	emit_loop(current_loop_start);
 	if (exit_jump != -1) {
 		patch_jump(exit_jump);
 		emit_byte(OC_POP);
 	}
+	if (break_pos != -1) {
+		patch_jump(break_pos);
+		break_pos = -1;
+	}
+
+	current_loop_start = surrounding_loop_start;
+	current_loop_scope_depth = surrounding_scope_depth;
+
 	end_scope();
 }

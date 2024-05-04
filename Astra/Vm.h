@@ -19,6 +19,7 @@ public:
 	void free();
 	Result interpret(Chunk* _chunk);
 	Result interpret(const std::string& input);
+	Result compile(const std::string& input, std::string& output);
 private:
 	int program_counter;
 	Object* objects = nullptr;

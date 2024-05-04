@@ -30,10 +30,15 @@ Token Lexer::lex() {
         case ';': return Token(TOKEN_SEMICOLON, "", line);
         case ',': return Token(TOKEN_COMMA, "", line);
         case '.': return Token(TOKEN_DOT, "", line);
-        case '-': return Token(TOKEN_MINUS, "", line);
-        case '+': return Token(TOKEN_PLUS, "", line);
-        case '/': return Token(TOKEN_SLASH, "", line);
-        case '*': return Token(TOKEN_STAR, "", line);
+        case '^': return Token(TOKEN_CAP, "", line);
+        case '-': return Token(
+            match('=') ? TOKEN_MINUS_EQUAL : TOKEN_MINUS, "", line);
+        case '+': return Token(
+            match('=') ? TOKEN_PLUS_EQUAL : TOKEN_PLUS, "", line);
+        case '/': return Token(
+            match('=') ? TOKEN_SLASH_EQUAL : TOKEN_SLASH, "", line);
+        case '*': return Token(
+            match('=') ? TOKEN_STAR_EQUAL : TOKEN_STAR, "", line);
         case ':': return Token(TOKEN_DOUBLE_DOT, "", line);
         case '!':
             return Token(
@@ -123,8 +128,13 @@ TokenType Lexer::id_type(const std::string& id) {
             if (id == "and") return TOKEN_AND;
             break;
         }
+        case 'b': {
+            if (id == "break") return TOKEN_BREAK;
+            break;
+        }
         case 'c': {
             if (id == "class") return TOKEN_CLASS;
+            else if (id == "continue") return TOKEN_CONTINUE;
             break;
         }
         case 'e': {

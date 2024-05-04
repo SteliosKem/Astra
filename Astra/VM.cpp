@@ -3,7 +3,17 @@
 #include <iostream>
 #include <cstdarg>
 #include <format>
+#include <iomanip>
 
+/*template< typename T >
+std::string int_to_hex(T i)
+{
+	std::stringstream stream;
+	stream << "0x"
+		<< std::setfill('0') << std::setw(sizeof(T) * 2)
+		<< std::hex << i;
+	return stream.str();
+}*/
 
 Result VM::interpret(Chunk* _chunk) {
 	chunk = _chunk;
@@ -32,6 +42,9 @@ Result VM::binary_operation(ValueType type, TokenType op) {
 			break;
 		case TOKEN_SLASH:
 			stack.push_back(make_number(a / b));
+			break;
+		case TOKEN_CAP:
+			stack.push_back(make_number(pow(a, b)));
 			break;
 		case TOKEN_GREATER:
 			stack.push_back(make_bool(a > b));
@@ -83,6 +96,9 @@ Result VM::run() {
 			break;
 		case OC_DIVIDE:
 			res = binary_operation(VALUE_NUMBER, TOKEN_SLASH);
+			break;
+		case OC_POWER:
+			res = binary_operation(VALUE_NUMBER, TOKEN_CAP);
 			break;
 		case OC_EQUAL:
 		{
@@ -241,6 +257,24 @@ Result VM::interpret(const std::string& input) {
 
 	chunk->free();
 	return result;
+}
+
+Result VM::compile(const std::string& input, std::string& output) {
+	Parser parser{};
+	Compiler compiler(input, parser);
+	Chunk new_chunk;
+	chunk = &new_chunk;
+	if (!compiler.compile(chunk)) {
+		chunk->free();
+		return COMPILE_ERROR;
+	}
+	for (uint8_t& byte : chunk->code) {
+		//output += int_to_hex(byte) + '\n';
+		output += byte + '\n';
+	}
+
+	chunk->free();
+	return OK;
 }
 
 Value VM::peek(int distance) {

@@ -14,8 +14,10 @@ enum Precedence {
 	PREC_TERM,
 	PREC_FACTOR,
 	PREC_UNARY,
+	PREC_POWER,
 	PREC_CALL,
-	PREC_PRIMARY
+	PREC_PRIMARY,
+	
 };
 
 struct Local {
@@ -53,7 +55,7 @@ struct Parser {
 
 class Compiler {
 public:
-	ParseRule rules[41];
+	ParseRule rules[50];
 	Parser& parser;
 	Lexer lexer;
 	Chunk* compiling_chunk;
@@ -139,7 +141,7 @@ private:
 	int resolve_local(Token name);
 
 	// IF
-	int emit_jump(uint8_t instruction);
+	int emit_jump(uint8_t instruction, int pos = -1);
 	void patch_jump(int offset);
 	
 
@@ -153,4 +155,11 @@ private:
 	void while_statement();
 	void for_statement();
 	void emit_loop(int loop_start);
+	int current_exit_jump = 0;
+	int current_loop_start = -1;
+	int current_loop_scope_depth = 0;
+	int break_pos = -1;
+	int continue_pos = -1;
+	void break_statement();
+	void continue_statement();
 };

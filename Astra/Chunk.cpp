@@ -12,7 +12,7 @@ void Chunk::free() {
 	constants.free();
 }
 
-void Chunk::disassemble(const char* name) {
+void Chunk::disassemble(std::string name) {
 	std::cout << "== " << name << " ==" << std::endl;
 
 	for (int offset = 0; offset < code.size();) {
@@ -79,6 +79,8 @@ int Chunk::disassemble_instruction(int offset) {
 		return jump_instruction("OP_JMP_IF_FALSE", 1, offset);
 	case OC_LOOP:
 		return jump_instruction("OP_LOOP", -1, offset);
+	case OC_POWER:
+		return simple_instruction("OP_POWER", offset);
 	default:
 		std::cout << "Unkown OpCode " << instruction;
 		return offset + 1;
@@ -107,13 +109,13 @@ int Chunk::constant_instruction(const char* name, int offset) {
 
 int Chunk::byte_instruction(const char* name, int offset) {
 	uint8_t slot = code[offset + 1];
-	std::cout << name << " " << slot;
+	std::cout << name << " " << slot << std::endl;
 	return offset + 2;
 }
 
 int Chunk::jump_instruction(const char* name, int sign, int offset) {
 	uint16_t jump = (uint16_t)(code[offset + 1] << 8);
 	jump |= code[offset + 2];
-	std::cout << name << " " << offset << " -> " << offset + 3 + sign * jump;
+	std::cout << name << " " << offset << " -> " << offset + 3 + sign * jump << std::endl;
 	return offset + 3;
 }
