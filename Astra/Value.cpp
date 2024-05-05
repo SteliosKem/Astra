@@ -28,13 +28,7 @@ void print_value(Value value) {
 	
 }
 
-void print_object(Value value) {
-	switch (get_object(value)->type) {
-	case OBJ_STRING:
-		std::cout << get_string(value)->str;
-		break;
-	}
-}
+
 
 Value make_bool(bool val) {
 	return Value(VALUE_BOOL, val);
@@ -50,6 +44,11 @@ Value make_number(double val) {
 
 Value make_object(Object* obj) {
 	return Value(VALUE_OBJECT, obj);
+}
+
+Value make_string(String* val) {
+	val->type = OBJ_STRING;
+	return make_object(val);
 }
 
 bool is_bool(Value val) {

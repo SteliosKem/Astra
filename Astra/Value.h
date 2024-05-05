@@ -31,6 +31,7 @@ Value make_bool(bool val);
 Value make_void();
 Value make_number(double val);
 Value make_object(Object* val);
+Value make_string(String* val);
 
 bool is_bool(Value val);
 bool is_void(Value val);

@@ -2,7 +2,10 @@
 #include <string>
 
 enum ObjectType {
+	
 	OBJ_STRING,
+	OBJ_FUNCTION,
+	OBJ_NATIVE
 };
 
 class Object {

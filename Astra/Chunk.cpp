@@ -81,6 +81,8 @@ int Chunk::disassemble_instruction(int offset) {
 		return jump_instruction("OP_LOOP", -1, offset);
 	case OC_POWER:
 		return simple_instruction("OP_POWER", offset);
+	case OC_CALL:
+		return byte_instruction("OP_CALL", offset);
 	default:
 		std::cout << "Unkown OpCode " << instruction;
 		return offset + 1;
@@ -101,7 +103,7 @@ int Chunk::add_constant(Value value) {
 
 int Chunk::constant_instruction(const char* name, int offset) {
 	uint8_t constant = code[offset + 1];
-	std::cout << name << " " << constant;
+	std::cout << name << " " << unsigned(constant) << ": " << " ";
 	print_value(constants.values[constant]);
 	std::cout << std::endl;
 	return offset + 2;
@@ -109,7 +111,7 @@ int Chunk::constant_instruction(const char* name, int offset) {
 
 int Chunk::byte_instruction(const char* name, int offset) {
 	uint8_t slot = code[offset + 1];
-	std::cout << name << " " << slot << std::endl;
+	std::cout << name << " " << unsigned(slot) << std::endl;
 	return offset + 2;
 }
 
@@ -118,4 +120,31 @@ int Chunk::jump_instruction(const char* name, int sign, int offset) {
 	jump |= code[offset + 2];
 	std::cout << name << " " << offset << " -> " << offset + 3 + sign * jump << std::endl;
 	return offset + 3;
+}
+
+bool is_function(Value val)
+{
+	return get_object(val)->type == OBJ_FUNCTION;
+}
+
+Function* get_function(Value val) {
+	return (Function*)get_object(val);
+}
+
+void print_object(Value value) {
+	switch (get_object(value)->type) {
+	case OBJ_STRING:
+		std::cout << get_string(value)->str;
+		break;
+	case OBJ_FUNCTION:
+	{
+		Function* func = get_function(value);
+		if (func->name == "") std::cout << "<script>";
+		else std::cout << "<function " << func->name << '>';
+		break;
+	}
+	case OBJ_NATIVE:
+		std::cout << "<native function>";
+	}
+
 }

@@ -27,7 +27,8 @@ enum OpCode {
 	OC_SET_LOCAL,
 	OC_JMP_IF_FALSE,
 	OC_JMP,
-	OC_LOOP
+	OC_LOOP,
+	OC_CALL
 };
 
 class Chunk {
@@ -51,7 +52,10 @@ private:
 
 class Function : public Object {
 public:
-	int arity;
+	int arity = 0;
 	Chunk chunk;
 	std::string name;
 };
+
+bool is_function(Value val);
+Function* get_function(Value val);

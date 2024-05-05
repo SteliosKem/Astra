@@ -4,6 +4,8 @@
 #include "Lexer.h"
 #include <functional>
 
+
+
 enum Precedence {
 	PREC_NONE,
 	PREC_ASSIGNMENT,
@@ -20,10 +22,45 @@ enum Precedence {
 	
 };
 
+enum FunctionType {
+	TYPE_FUNCTION,
+	TYPE_SCRIPT
+};
+
 struct Local {
 	Token name;
 	int depth;
 };
+
+class Layer {
+public:
+	Layer* enclosing;
+	Function* function;
+	FunctionType function_type = TYPE_SCRIPT;
+
+	Local locals[UINT8_MAX + 1];
+	int local_count = 0;
+	int scope_depth = 0;
+};
+
+typedef Value(*NativeFn)(int argCount, Value* args);
+
+class Native : public Object {
+public:
+	Native(NativeFn fn) {
+		type = OBJ_NATIVE;
+		native_fn = fn;
+	}
+	NativeFn native_fn;
+};
+
+inline bool is_native(Value val) {
+	return is_object(val) && get_object(val)->type == OBJ_NATIVE;
+}
+
+inline Native* get_native(Value val) {
+	return (Native*)get_object(val);
+}
 
 enum ParseFn {
 	FN_NONE,
@@ -35,7 +72,8 @@ enum ParseFn {
 	FN_STRING,
 	FN_VARIABLE,
 	FN_AND,
-	FN_OR
+	FN_OR,
+	FN_CALL
 };
 
 struct ParseRule {
@@ -58,12 +96,35 @@ public:
 	ParseRule rules[50];
 	Parser& parser;
 	Lexer lexer;
-	Chunk* compiling_chunk;
+	Chunk* current_chunk() {
+		return &current->function->chunk;
+		//return compiling_chunk;
+	}
 
 	Compiler(const std::string& src, Parser& _parser);
+	~Compiler() {
+		delete current;
+	}
+
+	void init_layer(Layer* layer, FunctionType type) {
+		layer->enclosing = current;
+		layer->function = new Function;
+		layer->function_type = type;
+		layer->local_count = 0;
+		layer->scope_depth = 0;
+		current = layer;
+
+		if (type != TYPE_SCRIPT) {
+			current->function->name = parser.previous_token.value;
+		}
+
+		Local* local = &current->locals[current->local_count++];
+		local->depth = 0;
+		local->name.value = "";
+	}
 
 	// HELPER FUNCTIONS
-	bool compile(Chunk* chunk);
+	Function* compile();
 	void next();
 	void consume(TokenType type, const std::string& message);
 	bool match(TokenType type);
@@ -82,11 +143,11 @@ public:
 	}
 
 	void emit_byte(uint8_t byte) {
-		compiling_chunk->write(byte, parser.previous_token.line);
+		current_chunk()->write(byte, parser.previous_token.line);
 	}
 
 	uint8_t make_constant(Value value);
-	void end();
+	Function* end();
 
 
 	// EXPRESSIONS, OPERATIONS, LITERALS
@@ -108,6 +169,7 @@ private:
 
 	// EMISSIONS
 	void emit_return() {
+		emit_byte(OC_VOID);
 		emit_byte(OC_RETURN);
 	}
 	void emit_bytes(uint8_t b1, uint8_t b2);
@@ -132,9 +194,7 @@ private:
 	void make_initialized();
 
 	// SCOPE
-	Local locals[UINT8_MAX + 1];
-	int local_count = 0;
-	int scope_depth = 0;
+	Layer* current;
 	void new_scope();
 	void end_scope();
 	void add_local(Token name);
@@ -162,4 +222,11 @@ private:
 	int continue_pos = -1;
 	void break_statement();
 	void continue_statement();
+
+	// FUNCTIONS
+	void function_declaration();
+	void make_function(FunctionType type);
+	void function_call();
+	uint8_t argument_list();
+	void return_statement();
 };

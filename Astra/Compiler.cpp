@@ -6,7 +6,8 @@
 
 Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	lexer.source = src;
-	rules[TOKEN_L_PAR] = ParseRule{ FN_GROUPING, FN_NONE, PREC_NONE };
+	
+	rules[TOKEN_L_PAR] = ParseRule{ FN_GROUPING, FN_CALL, PREC_CALL };
 	rules[TOKEN_R_PAR] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_L_BRACE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_R_BRACE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
@@ -58,8 +59,7 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	rules[TOKEN_CONTINUE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 }
 
-bool Compiler::compile(Chunk* chunk) {
-	compiling_chunk = chunk;
+Function* Compiler::compile() {
 	parser.current_token = Token(TOKEN_AND, "", 0);
 	/*while (true) {
 		Token token = lexer.lex();
@@ -74,12 +74,13 @@ bool Compiler::compile(Chunk* chunk) {
 	}
 	lexer.pos = -1;
 	lexer.line = 0;*/
+	current->function = new Function();
 	next();
 	while (!match(TOKEN_EOF)) {
 		declaration();
 	}
-	end();
-	return !parser.error;
+	Function* function = end();
+	return parser.error ? nullptr : function;
 	
 }
 
@@ -120,7 +121,7 @@ void Compiler::error_at(Token* token, const std::string& message) {
 }
 
 uint8_t Compiler::make_constant(Value value) {
-	int constant = compiling_chunk->add_constant(value);
+	int constant = current_chunk()->add_constant(value);
 	if (constant > UINT8_MAX) {
 		error("Too many constants in one chunk");
 		return 0;
@@ -230,13 +231,16 @@ void Compiler::emit_bytes(uint8_t b1, uint8_t b2) {
 	emit_byte(b2);
 }
 
-void Compiler::end() {
+Function* Compiler::end() {
 	emit_return();
+	Function* function = current->function;
 	//#ifdef DEBUG_PRINT_CODE
 	if (!parser.error) {
-		compiling_chunk->disassemble("code");
+		current_chunk()->disassemble(function->name != "" ? function->name : "<script>");
 	}
 	//#endif
+	current = current->enclosing;
+	return function;
 }
 
 void Compiler::call_prec_function(ParseFn func) {
@@ -262,9 +266,31 @@ void Compiler::call_prec_function(ParseFn func) {
 		return and_operation();
 	case FN_OR:
 		return or_operation();
+	case FN_CALL:
+		return function_call();
 	default:
 		break;
 	}
+}
+
+void Compiler::function_call() {
+	uint8_t arg_count = argument_list();
+	emit_bytes(OC_CALL, arg_count);
+}
+
+uint8_t Compiler::argument_list() {
+	uint8_t arg_count = 0;
+	if (parser.current_token.type != TOKEN_R_PAR) {
+		do {
+			expression();
+			if (arg_count == 255) {
+				error("Can't pass more than 255 arguments.");
+			}
+			arg_count++;
+		} while (match(TOKEN_COMMA));
+	}
+	consume(TOKEN_R_PAR, "Expect ')' after arguments.");
+	return arg_count;
 }
 
 void Compiler::grouping() {
@@ -306,21 +332,58 @@ void Compiler::literal() {
 }
 
 void Compiler::string() {
-	emit_constant(make_object(new String(parser.previous_token.value)));
+	emit_constant(make_string(new String(parser.previous_token.value)));
 }
 
 void Compiler::declaration() {
 	if (match(TOKEN_VAR)) {
 		variable_declaration();
 	}
+	else if (match(TOKEN_FUN)) {
+		function_declaration();
+	}
 	else statement();
 	
 	if (parser.panic) synchronize();
 }
 
+void Compiler::function_declaration() {
+	uint8_t global = parse_variable("Expected function name");
+	make_initialized();
+	make_function(TYPE_FUNCTION);
+	define_variable(global);
+}
+
+void Compiler::make_function(FunctionType type) {
+	Layer layer;
+	init_layer(&layer, type);
+	new_scope();
+	consume(TOKEN_L_PAR, "Expected '('");
+	if (parser.current_token.type != TOKEN_R_PAR) {
+		do {
+			current->function->arity++;
+			if (current->function->arity > 255) {
+				error("Can't have more than 255 parameters");
+			}
+			uint8_t constant = parse_variable("Expected parameter name");
+			define_variable(constant);
+		} while (match(TOKEN_COMMA));
+	}
+	consume(TOKEN_R_PAR, "Expected ')'");
+	consume(TOKEN_L_BRACE, "Expected '{'");
+	compount_statement();
+
+	Function* function = end();
+	function->type = OBJ_FUNCTION;
+	emit_bytes(OC_CONSTANT, make_constant(make_object(function)));
+}
+
 void Compiler::statement() {
 	if (match(TOKEN_PRINT)) {
 		print_statement();
+	}
+	else if (match(TOKEN_RETURN)) {
+		return_statement();
 	}
 	else if (match(TOKEN_BREAK)) {
 		break_statement();
@@ -345,6 +408,19 @@ void Compiler::statement() {
 	else {
 		expression_statement();
 	}
+}
+
+void Compiler::return_statement() {
+	if (current->function_type == TYPE_SCRIPT) {
+		error("Can't return from script");
+	}
+	if (match(TOKEN_SEMICOLON)) {
+		emit_return();
+		return;
+	}
+	expression();
+	consume(TOKEN_SEMICOLON, "Expected ';'");
+	emit_byte(OC_RETURN);
 }
 
 void Compiler::expression_statement() {
@@ -401,13 +477,13 @@ uint8_t Compiler::parse_variable(const std::string& error) {
 	consume(TOKEN_ID, error);
 
 	declare_variable();
-	if (scope_depth > 0) return 0;
+	if (current->scope_depth > 0) return 0;
 
-	return make_constant(make_object(new String(parser.previous_token.value)));
+	return make_constant(make_string(new String(parser.previous_token.value)));
 }
 
 void Compiler::define_variable(uint8_t global) {
-	if (scope_depth > 0) {
+	if (current->scope_depth > 0) {
 		make_initialized();
 		return;
 	}
@@ -465,11 +541,11 @@ void Compiler::named_variable(Token name) {
 }
 
 uint8_t Compiler::identifier_constant(Token* name) {
-	return make_constant(make_object(new String(name->value)));
+	return make_constant(make_string(new String(name->value)));
 }
 
 void Compiler::new_scope() {
-	scope_depth++;
+	current->scope_depth++;
 }
 void Compiler::compount_statement() {
 	while (parser.current_token.type != TOKEN_R_BRACE && parser.current_token.type != TOKEN_EOF) {
@@ -479,21 +555,21 @@ void Compiler::compount_statement() {
 	consume(TOKEN_R_BRACE, "Expected '}'");
 }
 void Compiler::end_scope() {
-	scope_depth--;
+	current->scope_depth--;
 
-	while (local_count > 0 && locals[local_count - 1].depth > scope_depth) {
+	while (current->local_count > 0 && current->locals[current->local_count - 1].depth > current->scope_depth) {
 		emit_byte(OC_POP);
-		local_count--;
+		current->local_count--;
 	}
 }
 
 void Compiler::declare_variable() {
 	
-	if (scope_depth == 0) return;
+	if (current->scope_depth == 0) return;
 	Token name = parser.previous_token;
-	for (int i = local_count - 1; i >= 0; i--) {
-		Local* local = &locals[i];
-		if (local->depth != -1 && local->depth < scope_depth) break;
+	for (int i = current->local_count - 1; i >= 0; i--) {
+		Local* local = &current->locals[i];
+		if (local->depth != -1 && local->depth < current->scope_depth) break;
 
 		if (equal_identifiers(name, local->name)) error("Variable already exists in scope");
 	}
@@ -502,15 +578,15 @@ void Compiler::declare_variable() {
 }
 
 void Compiler::add_local(Token name) {
-	if (local_count == UINT8_MAX + 1) {
+	if (current->local_count == UINT8_MAX + 1) {
 		error("Too many local variables in scope");
 		return;
 	}
 
-	Local* local = &locals[local_count++];
+	Local* local = &current->locals[current->local_count++];
 	local->name = name;
 	local->depth = -1;
-	local->depth = scope_depth;
+	local->depth = current->scope_depth;
 }
 
 bool Compiler::equal_identifiers(Token& a, Token& b) {
@@ -519,8 +595,8 @@ bool Compiler::equal_identifiers(Token& a, Token& b) {
 }
 
 int Compiler::resolve_local(Token name) {
-	for (int i = local_count - 1; i >= 0; i--) {
-		Local* local = &locals[i];
+	for (int i = current->local_count - 1; i >= 0; i--) {
+		Local* local = &current->locals[i];
 		
 		if (equal_identifiers(name, local->name)) {
 			if (local->depth == -1) error("Tried accessing variable in it's initialization");
@@ -534,7 +610,8 @@ int Compiler::resolve_local(Token name) {
 }
 
 void Compiler::make_initialized() {
-	locals[local_count - 1].depth = scope_depth;
+	if (current->scope_depth == 0) return;
+	current->locals[current->local_count - 1].depth = current->scope_depth;
 }
 
 void Compiler::if_statement() {
@@ -558,19 +635,19 @@ int Compiler::emit_jump(uint8_t instruction, int pos) {
 	emit_byte(0xff);
 	emit_byte(0xff);
 	if(pos==-1)
-		return compiling_chunk->code.size() - 2;
+		return current_chunk()->code.size() - 2;
 	return pos - 2;
 }
 
 void Compiler::patch_jump(int offset) {
-	int jump = compiling_chunk->code.size() - offset - 2;
+	int jump = current_chunk()->code.size() - offset - 2;
 
 	if (jump > UINT16_MAX) {
 		error("Can't jump this big");
 	}
 
-	compiling_chunk->code[offset] = (jump >> 8) & 0xff;
-	compiling_chunk->code[offset + 1] = jump & 0xff;
+	current_chunk()->code[offset] = (jump >> 8) & 0xff;
+	current_chunk()->code[offset + 1] = jump & 0xff;
 }
 
 void Compiler::and_operation() {
@@ -597,8 +674,8 @@ void Compiler::or_operation() {
 void Compiler::while_statement() {
 	int surrounding_loop_start = current_loop_start;
 	int surrounding_scope_depth = current_loop_scope_depth;
-	current_loop_start = compiling_chunk->code.size();
-	current_loop_scope_depth = scope_depth;
+	current_loop_start = current_chunk()->code.size();
+	current_loop_scope_depth = current->scope_depth;
 	expression();
 
 	int exit_jump = emit_jump(OC_JMP_IF_FALSE);
@@ -624,7 +701,7 @@ void Compiler::break_statement() {
 		return;
 	}
 	consume(TOKEN_SEMICOLON, "Expected ';' after expression");
-	for (int i = local_count - 1; i >= 0 && locals[i].depth > current_loop_scope_depth; i--)
+	for (int i = current->local_count - 1; i >= 0 && current->locals[i].depth > current_loop_scope_depth; i--)
 		emit_byte(OC_POP);
 	break_pos = emit_jump(OC_JMP);
 	emit_byte(OC_POP);
@@ -636,7 +713,7 @@ void Compiler::continue_statement() {
 		return;
 	}
 	consume(TOKEN_SEMICOLON, "Expected ';' after expression");
-	for (int i = local_count - 1; i >= 0 && locals[i].depth > current_loop_scope_depth; i--)
+	for (int i = current->local_count - 1; i >= 0 && current->locals[i].depth > current_loop_scope_depth; i--)
 		emit_byte(OC_POP);
 	
 	emit_loop(current_loop_start);
@@ -645,7 +722,7 @@ void Compiler::continue_statement() {
 void Compiler::emit_loop(int loop_start) {
 	emit_byte(OC_LOOP);
 
-	int offset = compiling_chunk->code.size() - loop_start + 2;
+	int offset = current_chunk()->code.size() - loop_start + 2;
 	if (offset > UINT16_MAX) error("Loop body is too large");
 
 	emit_byte((offset >> 8) & 0xff);
@@ -664,8 +741,8 @@ void Compiler::for_statement() {
 	}
 	int surrounding_loop_start = current_loop_start;
 	int surrounding_scope_depth = current_loop_scope_depth;
-	current_loop_start = compiling_chunk->code.size();
-	current_loop_scope_depth = scope_depth;
+	current_loop_start = current_chunk()->code.size();
+	current_loop_scope_depth = current->scope_depth;
 	int exit_jump = -1;
 	if (!match(TOKEN_SEMICOLON)) {
 		expression();
@@ -677,7 +754,7 @@ void Compiler::for_statement() {
 	}
 	if (!match(TOKEN_DOUBLE_DOT)) {
 		int body_jump = emit_jump(OC_JMP);
-		int increment_start = compiling_chunk->code.size();
+		int increment_start = current_chunk()->code.size();
 		expression();
 		consume(TOKEN_DOUBLE_DOT, "Expected ':'");
 		emit_byte(OC_POP);
