@@ -4,7 +4,11 @@
 #include "Lexer.h"
 #include <functional>
 
-
+class Upvalue {
+public:
+	uint8_t index;
+	bool is_local;
+};
 
 enum Precedence {
 	PREC_NONE,
@@ -40,6 +44,7 @@ public:
 
 	Local locals[UINT8_MAX + 1];
 	int local_count = 0;
+	std::vector<Upvalue> upvalues;
 	int scope_depth = 0;
 };
 
@@ -197,8 +202,8 @@ private:
 	Layer* current;
 	void new_scope();
 	void end_scope();
-	void add_local(Token name);
-	int resolve_local(Token name);
+	void add_local(Layer* layer, Token& name);
+	int resolve_local(Layer* layer, Token& name);
 
 	// IF
 	int emit_jump(uint8_t instruction, int pos = -1);
@@ -229,4 +234,6 @@ private:
 	void function_call();
 	uint8_t argument_list();
 	void return_statement();
+	int resolve_upvalue(Layer* layer, Token& name);
+	int add_upvalue(Layer* layer, uint8_t index, bool is_local);
 };

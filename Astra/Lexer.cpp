@@ -13,6 +13,22 @@ Token Lexer::lex() {
                 while (current_char != '\n' && pos < source.size())
                     next();
             }
+            else if (pos < source.size() && source[pos + 1] == '*') {
+                next();
+                next();
+                while (pos < source.size()) {
+                    if (current_char == '\n') {
+                        line++;
+                        next();
+                    }
+                    else if (current_char == '*' && source[pos + 1] == '/') {
+                        next();
+                        next();
+                        break;
+                    }
+                    next();
+                }
+            }
             else
                 break;
         }

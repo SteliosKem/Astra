@@ -83,6 +83,28 @@ int Chunk::disassemble_instruction(int offset) {
 		return simple_instruction("OP_POWER", offset);
 	case OC_CALL:
 		return byte_instruction("OP_CALL", offset);
+	case OC_GET_UPVALUE:
+		return byte_instruction("OP_GET_UPVALUE", offset);
+	case OC_SET_UPVALUE:
+		return byte_instruction("OP_SET_UPVALUE", offset);
+	case OC_CLOSURE: {
+		offset++;
+		uint8_t constant = code[offset++];
+		std::cout << "OP_CLOSURE " << unsigned(constant) << " ";
+		print_value(constants.values[constant]);
+		std::cout << std::endl;
+
+		Function* function = get_function(constants.values[constant]);
+		for (int j = 0; j < function->upvalue_count; j++) {
+			int is_local = code[offset++];
+			int index = code[offset++];
+			std::cout << "          | " << offset - 2 << " " << (is_local ? "local" : "upvalue") << " " << index;
+		}
+
+		std::cout << std::endl;
+
+		return offset;
+	}
 	default:
 		std::cout << "Unkown OpCode " << instruction;
 		return offset + 1;
@@ -122,13 +144,20 @@ int Chunk::jump_instruction(const char* name, int sign, int offset) {
 	return offset + 3;
 }
 
-bool is_function(Value val)
-{
+bool is_function(Value val) {
 	return get_object(val)->type == OBJ_FUNCTION;
+}
+
+bool is_closure(Value val) {
+	return get_object(val)->type == OBJ_CLOSURE;
 }
 
 Function* get_function(Value val) {
 	return (Function*)get_object(val);
+}
+
+Closure* get_closure(Value val) {
+	return (Closure*)get_object(val);
 }
 
 void print_object(Value value) {
@@ -145,6 +174,15 @@ void print_object(Value value) {
 	}
 	case OBJ_NATIVE:
 		std::cout << "<native function>";
+	case OBJ_UPVALUE:
+		std::cout << "upvalue";
+	case OBJ_CLOSURE: {
+		Function* func = get_closure(value)->function;
+		if (func->name == "") std::cout << "<script>";
+		else std::cout << "<function " << func->name << '>';
+		break;
+	}
+		
 	}
 
 }

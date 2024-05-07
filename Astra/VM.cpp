@@ -65,15 +65,15 @@ Result VM::binary_operation(ValueType type, TokenType op) {
 }
 
 inline uint8_t read_byte(CallFrame* frame) {
-	return frame->function->chunk.code[frame->program_counter++];
+	return frame->closure->function->chunk.code[frame->program_counter++];
 }
 
 inline Value read_constant(CallFrame* frame) {
-	return frame->function->chunk.constants.values[read_byte(frame)];
+	return frame->closure->function->chunk.constants.values[read_byte(frame)];
 }
 
 inline uint16_t read_short(CallFrame* frame) {
-	return (uint16_t)(frame->function->chunk.code[frame->program_counter - 2] << 8 | frame->function->chunk.code[frame->program_counter - 1]);
+	return (uint16_t)(frame->closure->function->chunk.code[frame->program_counter - 2] << 8 | frame->closure->function->chunk.code[frame->program_counter - 1]);
 }
 
 Result VM::run() {
@@ -261,6 +261,38 @@ Result VM::run() {
 			frame = &frames[frames.size() - 1];
 			break;
 		}
+		case OC_CLOSURE:
+		{
+			Function* func = get_function(read_constant(frame));
+			Closure* closure = new Closure(func);
+			push_stack(make_object(closure));
+			for (int i = 0; i < closure->upvalue_count; i++) {
+				uint8_t is_local = read_byte(frame);
+				uint8_t index = read_byte(frame);
+				if (is_local) {
+					
+					closure->upvalues.push_back(capture_upvalue(frame->slots + index));
+					//print_value(*((Closure*)std::get<Object*>(stack[stack.size() - 1].value))->upvalues[i]->location);
+				}
+				else
+					closure->upvalues.push_back(frame->closure->upvalues[index]);
+				CallFrame* frame = &frames[frames.size() - 1];
+				frame->slots = &stack[frame->stack_start_pos];
+			}
+			break;
+		}
+		case OC_GET_UPVALUE: {
+			uint8_t slot = read_byte(frame);
+			std::cout << "SLOT" << unsigned(slot);
+			print_value(*frame->closure->upvalues[slot]->location);
+			push_stack(*frame->closure->upvalues[slot]->location);
+			break;
+		}
+		case OC_SET_UPVALUE: {
+			uint8_t slot = read_byte(frame);
+			*frame->closure->upvalues[slot]->location = peek(0);
+			break;
+		}
 		}
 		
 		if (res == RUNTIME_ERROR) {
@@ -273,8 +305,8 @@ bool VM::call_value(Value callee, int arg_count) {
 	if (is_object(callee)) {
 		switch (get_object(callee)->type)
 		{
-		case OBJ_FUNCTION:
-			return call_function(get_function(callee), arg_count);
+		case OBJ_CLOSURE:
+			return call_function(get_closure(callee), arg_count);
 		case OBJ_NATIVE:
 		{
 			NativeFn native = get_native(callee)->native_fn;
@@ -301,9 +333,9 @@ void VM::define_native(std::string name, NativeFn function) {
 }
 
 
-bool VM::call_function(Function* func, int arg_count) {
-	if (arg_count != func->arity) {
-		runtime_error(std::format("Expected {0} arguments but got {1}", func->arity, arg_count));
+bool VM::call_function(Closure* closure, int arg_count) {
+	if (arg_count != closure->function->arity) {
+		runtime_error(std::format("Expected {0} arguments but got {1}", closure->function->arity, arg_count));
 		return false;
 	}
 	
@@ -329,8 +361,13 @@ bool VM::call_function(Function* func, int arg_count) {
 
 	
 	
-	frames.push_back(CallFrame(func, 0, &(stack[stack.size() - 1]) - arg_count, stack.size() -1 - arg_count));
+	frames.push_back(CallFrame(closure, 0, &(stack[stack.size() - 1]) - arg_count, stack.size() -1 - arg_count));
 	return true;
+}
+
+UpvalueObj* VM::capture_upvalue(Value* local) {
+	UpvalueObj* created_upvalue = new UpvalueObj(local);
+	return created_upvalue;
 }
 
 void VM::free() {
@@ -366,7 +403,10 @@ Result VM::interpret(const std::string& input) {
 	function->type = OBJ_FUNCTION;
 
 	stack.push_back(make_object(function));
-	call_function(function, 0);
+	Closure* closure = new Closure(function);
+	pop_stack();
+	stack.push_back(make_object(closure));
+	call_function(closure, 0);
 
 	return run();
 }
@@ -398,7 +438,7 @@ void VM::runtime_error(std::string format) {
 
 	for (int i = frames.size() - 2; i >= 0; i--) {
 		CallFrame* frame = &frames[i];
-		Function* func = frame->function;
+		Function* func = frame->closure->function;
 		size_t instruction = &func->chunk.code[frame->program_counter] - &func->chunk.code[0] - 1;
 		std::cout << "in " << (func->name == "" ? "script" : func->name) << " at line: " << func->chunk.lines[instruction] << std::endl;
 	}

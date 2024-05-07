@@ -375,7 +375,12 @@ void Compiler::make_function(FunctionType type) {
 
 	Function* function = end();
 	function->type = OBJ_FUNCTION;
-	emit_bytes(OC_CONSTANT, make_constant(make_object(function)));
+	emit_bytes(OC_CLOSURE, make_constant(make_object(function)));
+
+	for (int i = 0; i < function->upvalue_count; i++) {
+		emit_byte(layer.upvalues[i].is_local ? 1 : 0);
+		emit_byte(layer.upvalues[i].index);
+	}
 }
 
 void Compiler::statement() {
@@ -495,17 +500,23 @@ void Compiler::variable() {
 }
 
 void Compiler::named_variable(Token name) {
+	
 	uint8_t get_op, set_op;
-	int arg = resolve_local(name);
+	int arg = resolve_local(current, name);
 	if (arg != -1) {
 		get_op = OC_GET_LOCAL;
 		set_op = OC_SET_LOCAL;
+	}
+	else if ((arg = resolve_upvalue(current, name)) != -1) {
+		get_op = OC_GET_UPVALUE;
+		set_op = OC_SET_UPVALUE;
 	}
 	else {
 		arg = identifier_constant(&name);
 		get_op = OC_GET_GLOBAL;
 		set_op = OC_SET_GLOBAL;
 	}
+	
 
 	if (can_assign && match(TOKEN_EQUAL)) {
 		expression();
@@ -538,6 +549,35 @@ void Compiler::named_variable(Token name) {
 	else {
 		emit_bytes(get_op, (uint8_t)arg);
 	}
+}
+
+int Compiler::resolve_upvalue(Layer* layer, Token& name) {
+	if (layer->enclosing == nullptr) return -1;
+
+	int local = resolve_local(layer->enclosing, name);
+	std::cout << name.value << "IDX: " << local;
+	if (local != -1)
+		return add_upvalue(layer, (uint8_t)local, true);
+
+	int upvalue = resolve_upvalue(layer->enclosing, name);
+	std::cout << "IDX2: " << local;
+	if (upvalue != -1) {
+		return add_upvalue(layer, (uint8_t)upvalue, false);
+	}
+	return -1;
+}
+
+int Compiler::add_upvalue(Layer* layer, uint8_t index, bool is_local) {
+	int upvalue_count = layer->function->upvalue_count;
+	for (int i = 0; i < upvalue_count; i++) {
+		Upvalue* upvalue = &layer->upvalues[i];
+		if (upvalue->index == index && upvalue->is_local == is_local)
+			return i;
+			
+	}
+	
+	layer->upvalues.push_back(Upvalue(index, is_local));
+	return layer->function->upvalue_count++;
 }
 
 uint8_t Compiler::identifier_constant(Token* name) {
@@ -574,19 +614,19 @@ void Compiler::declare_variable() {
 		if (equal_identifiers(name, local->name)) error("Variable already exists in scope");
 	}
 	
-	add_local(name);
+	add_local(current, name);
 }
 
-void Compiler::add_local(Token name) {
-	if (current->local_count == UINT8_MAX + 1) {
+void Compiler::add_local(Layer* layer, Token& name) {
+	if (layer->local_count == UINT8_MAX + 1) {
 		error("Too many local variables in scope");
 		return;
 	}
 
-	Local* local = &current->locals[current->local_count++];
+	Local* local = &layer->locals[layer->local_count++];
 	local->name = name;
 	local->depth = -1;
-	local->depth = current->scope_depth;
+	local->depth = layer->scope_depth;
 }
 
 bool Compiler::equal_identifiers(Token& a, Token& b) {
@@ -594,9 +634,9 @@ bool Compiler::equal_identifiers(Token& a, Token& b) {
 	return false;
 }
 
-int Compiler::resolve_local(Token name) {
-	for (int i = current->local_count - 1; i >= 0; i--) {
-		Local* local = &current->locals[i];
+int Compiler::resolve_local(Layer* layer, Token& name) {
+	for (int i = layer->local_count - 1; i >= 0; i--) {
+		Local* local = &layer->locals[i];
 		
 		if (equal_identifiers(name, local->name)) {
 			if (local->depth == -1) error("Tried accessing variable in it's initialization");

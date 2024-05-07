@@ -28,7 +28,10 @@ enum OpCode {
 	OC_JMP_IF_FALSE,
 	OC_JMP,
 	OC_LOOP,
-	OC_CALL
+	OC_CALL,
+	OC_CLOSURE,
+	OC_SET_UPVALUE,
+	OC_GET_UPVALUE
 };
 
 class Chunk {
@@ -55,7 +58,41 @@ public:
 	int arity = 0;
 	Chunk chunk;
 	std::string name;
+	int upvalue_count = 0;
 };
 
+class UpvalueObj : public Object {
+public:
+	UpvalueObj(Value* loc) {
+		location = loc;
+		type = OBJ_UPVALUE;
+	}
+	Value* location;
+};
+
+class Closure : public Object {
+public:
+	Closure(Function* func) {
+		function = func;
+		upvalue_count = func->upvalue_count;
+		type = OBJ_CLOSURE;
+	}
+	Closure(Function* func, std::vector<UpvalueObj*> upvalues) {
+		function = func;
+		upvalues = upvalues;
+		type = OBJ_CLOSURE;
+	}
+	Closure() {
+		type = OBJ_CLOSURE;
+	}
+	Function* function;
+	std::vector<UpvalueObj*> upvalues;
+	int upvalue_count;
+};
+
+
+
 bool is_function(Value val);
+bool is_closure(Value val);
 Function* get_function(Value val);
+Closure* get_closure(Value val);

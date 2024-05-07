@@ -9,7 +9,7 @@
 
 class CallFrame {
 public:
-	Function* function;
+	Closure* closure;
 	int program_counter;
 	Value* slots;
 	int stack_start_pos;
@@ -60,8 +60,10 @@ private:
 	void free_objects();
 	void free_object(Object* obj);
 
+	UpvalueObj* capture_upvalue(Value* local);
+
 	bool call_value(Value callee, int arg_count);
-	bool call_function(Function* func, int arg_count);
+	bool call_function(Closure* closure, int arg_count);
 	void define_native(std::string name, NativeFn function);
 	std::unordered_map<std::string, Value> globals;
 };

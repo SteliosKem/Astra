@@ -13,6 +13,7 @@ CURRENT:
 - Break/Continue
 - Functions
 - Native Functions (time, input)
+- Multiline comments
 
 
 PLANNED:
@@ -26,3 +27,6 @@ PLANNED:
 - Increment/Decrement Operators 
 - Switch
 - Full support for native functions
+- Multi File support, packahes and Cosmos packet manager
+- REFACTOR AND FIX LEAKS, USE SMART POINTERS
+- Enums
