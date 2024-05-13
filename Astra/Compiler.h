@@ -34,6 +34,7 @@ enum FunctionType {
 struct Local {
 	Token name;
 	int depth;
+	bool is_captured = false;
 };
 
 class Layer {

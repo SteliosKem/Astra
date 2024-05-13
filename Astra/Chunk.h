@@ -31,7 +31,8 @@ enum OpCode {
 	OC_CALL,
 	OC_CLOSURE,
 	OC_SET_UPVALUE,
-	OC_GET_UPVALUE
+	OC_GET_UPVALUE,
+	OC_CLOSE_UPVALUE
 };
 
 class Chunk {
@@ -68,6 +69,8 @@ public:
 		type = OBJ_UPVALUE;
 	}
 	Value* location;
+	Value closed = make_void();
+	UpvalueObj* next = nullptr;
 };
 
 class Closure : public Object {
@@ -77,11 +80,6 @@ public:
 		upvalue_count = func->upvalue_count;
 		type = OBJ_CLOSURE;
 	}
-	Closure(Function* func, std::vector<UpvalueObj*> upvalues) {
-		function = func;
-		upvalues = upvalues;
-		type = OBJ_CLOSURE;
-	}
 	Closure() {
 		type = OBJ_CLOSURE;
 	}
@@ -89,8 +87,6 @@ public:
 	std::vector<UpvalueObj*> upvalues;
 	int upvalue_count;
 };
-
-
 
 bool is_function(Value val);
 bool is_closure(Value val);

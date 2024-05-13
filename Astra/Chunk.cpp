@@ -87,6 +87,8 @@ int Chunk::disassemble_instruction(int offset) {
 		return byte_instruction("OP_GET_UPVALUE", offset);
 	case OC_SET_UPVALUE:
 		return byte_instruction("OP_SET_UPVALUE", offset);
+	case OC_CLOSE_UPVALUE:
+		return simple_instruction("OP_CLOSE_UPVALUE", offset);
 	case OC_CLOSURE: {
 		offset++;
 		uint8_t constant = code[offset++];

@@ -26,7 +26,9 @@ Token Lexer::lex() {
                         next();
                         break;
                     }
-                    next();
+                    else {
+                        next();
+                    }
                 }
             }
             else

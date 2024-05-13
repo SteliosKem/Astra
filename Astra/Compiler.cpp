@@ -182,6 +182,7 @@ void Compiler::binary() {
 		break;
 	case TOKEN_SLASH:
 		emit_byte(OC_DIVIDE);
+		break;
 	case TOKEN_CAP:
 		emit_byte(OC_POWER);
 		break;
@@ -555,12 +556,12 @@ int Compiler::resolve_upvalue(Layer* layer, Token& name) {
 	if (layer->enclosing == nullptr) return -1;
 
 	int local = resolve_local(layer->enclosing, name);
-	std::cout << name.value << "IDX: " << local;
-	if (local != -1)
+	if (local != -1) {
+		layer->enclosing->locals[local].is_captured = true;
 		return add_upvalue(layer, (uint8_t)local, true);
+	}
 
 	int upvalue = resolve_upvalue(layer->enclosing, name);
-	std::cout << "IDX2: " << local;
 	if (upvalue != -1) {
 		return add_upvalue(layer, (uint8_t)upvalue, false);
 	}
@@ -598,7 +599,11 @@ void Compiler::end_scope() {
 	current->scope_depth--;
 
 	while (current->local_count > 0 && current->locals[current->local_count - 1].depth > current->scope_depth) {
-		emit_byte(OC_POP);
+		if (current->locals[current->local_count - 1].is_captured) {
+			emit_byte(OC_CLOSE_UPVALUE);
+		}
+		else
+			emit_byte(OC_POP);
 		current->local_count--;
 	}
 }

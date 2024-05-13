@@ -65,7 +65,8 @@ Result VM::binary_operation(ValueType type, TokenType op) {
 }
 
 inline uint8_t read_byte(CallFrame* frame) {
-	return frame->closure->function->chunk.code[frame->program_counter++];
+	//return frame->closure->function->chunk.code[frame->program_counter++];
+	return *frame->program_counter++;
 }
 
 inline Value read_constant(CallFrame* frame) {
@@ -73,13 +74,16 @@ inline Value read_constant(CallFrame* frame) {
 }
 
 inline uint16_t read_short(CallFrame* frame) {
-	return (uint16_t)(frame->closure->function->chunk.code[frame->program_counter - 2] << 8 | frame->closure->function->chunk.code[frame->program_counter - 1]);
+	//return (uint16_t)(frame->closure->function->chunk.code[frame->program_counter - 2] << 8 | frame->closure->function->chunk.code[frame->program_counter - 1]);
+	return (uint16_t)((frame->program_counter[-2] << 8) | frame->program_counter[-1]);
 }
 
 Result VM::run() {
-	CallFrame* frame = &frames[frames.size() - 1];
-	
+	//CallFrame* frame = &frames[frames.size() - 1];
+	CallFrame* frame = &frames[frame_count - 1];
 	while (true) {
+		//if (frame->closure->upvalues.size() > 0)
+		//	print_value(*frame->closure->upvalues[0]->location);
 		//std::cout << unsigned(frame->function->chunk.code[frame->program_counter]);
 		//for (Value& val : frame->slots) {
 		//	print_value(val);
@@ -102,18 +106,23 @@ Result VM::run() {
 		case OC_RETURN:
 		{
 			Value res = pop_stack();
-			int frame_count = frames.size() - 1;
+			close_upvalues(frame->slots);
+			//int frame_count = frames.size() - 1;
+			frame_count--;
 			
 			if (frame_count == 0) {
 				pop_stack();
 				return OK;
 			}
 
-			stack.erase(stack.begin() + frame->stack_start_pos, stack.end());
+			//stack.erase(stack.begin() + frame->stack_start_pos, stack.end());
+			//push_stack(res);
+			//frames.pop_back();
+			//frame = &frames[frames.size() - 1];
+			//frame->slots = &stack[frame->stack_start_pos];
+			stack_top = frame->slots;
 			push_stack(res);
-			frames.pop_back();
-			frame = &frames[frames.size() - 1];
-			frame->slots = &stack[frame->stack_start_pos];
+			frame = &frames[frame_count - 1];
 			break;
 		}
 		case OC_ADD:
@@ -165,7 +174,6 @@ Result VM::run() {
 		{
 			Value constant = read_constant(frame);
 			push_stack(constant);
-			//std::cout << "CONSTANT!";
 			//print_value(stack[stack.size() - 1]);
 			//std::cout << "WITH";
 			//print_value(frame->slots[stack.size() - 1]);
@@ -258,7 +266,7 @@ Result VM::run() {
 				return RUNTIME_ERROR;
 				break;
 			}
-			frame = &frames[frames.size() - 1];
+			frame = &frames[frame_count - 1];
 			break;
 		}
 		case OC_CLOSURE:
@@ -272,19 +280,14 @@ Result VM::run() {
 				if (is_local) {
 					
 					closure->upvalues.push_back(capture_upvalue(frame->slots + index));
-					//print_value(*((Closure*)std::get<Object*>(stack[stack.size() - 1].value))->upvalues[i]->location);
 				}
 				else
 					closure->upvalues.push_back(frame->closure->upvalues[index]);
-				CallFrame* frame = &frames[frames.size() - 1];
-				frame->slots = &stack[frame->stack_start_pos];
 			}
 			break;
 		}
 		case OC_GET_UPVALUE: {
 			uint8_t slot = read_byte(frame);
-			std::cout << "SLOT" << unsigned(slot);
-			print_value(*frame->closure->upvalues[slot]->location);
 			push_stack(*frame->closure->upvalues[slot]->location);
 			break;
 		}
@@ -293,12 +296,19 @@ Result VM::run() {
 			*frame->closure->upvalues[slot]->location = peek(0);
 			break;
 		}
+		case OC_CLOSE_UPVALUE: {
+			close_upvalues(stack_top - 1);
+			pop_stack();
+			break;
+		}
 		}
 		
 		if (res == RUNTIME_ERROR) {
 			return RUNTIME_ERROR;
 		}
+		
 	}
+
 }
 
 bool VM::call_value(Value callee, int arg_count) {
@@ -310,9 +320,10 @@ bool VM::call_value(Value callee, int arg_count) {
 		case OBJ_NATIVE:
 		{
 			NativeFn native = get_native(callee)->native_fn;
-			Value result = native(arg_count, &stack[stack.size() - 1] - arg_count);
+			//Value result = native(arg_count, &stack[stack.size() - 1] - arg_count);
+			Value result = native(arg_count, stack_top - arg_count);
 			for (int i = 0; i < arg_count + 1; i++) {
-				stack.pop_back();
+				pop_stack();
 			}
 			push_stack(result);
 			return true;
@@ -325,11 +336,11 @@ bool VM::call_value(Value callee, int arg_count) {
 }
 
 void VM::define_native(std::string name, NativeFn function) {
-	stack.push_back(make_string(new String(name)));
-	stack.push_back(make_object(new Native(function)));
+	push_stack(make_string(new String(name)));
+	push_stack(make_object(new Native(function)));
 	globals[get_string(stack[0])->str] = stack[1];
-	stack.pop_back();
-	stack.pop_back();
+	pop_stack();
+	pop_stack();
 }
 
 
@@ -361,13 +372,42 @@ bool VM::call_function(Closure* closure, int arg_count) {
 
 	
 	
-	frames.push_back(CallFrame(closure, 0, &(stack[stack.size() - 1]) - arg_count, stack.size() -1 - arg_count));
+	//frames.push_back(CallFrame(closure, 0, &(stack[stack.size() - 1]) - arg_count, stack.size() -1 - arg_count));
+	CallFrame* frame = &frames[frame_count++];
+	frame->closure = closure;
+	frame->program_counter = &closure->function->chunk.code[0];
+	frame->slots = stack_top - arg_count -1;
 	return true;
 }
 
 UpvalueObj* VM::capture_upvalue(Value* local) {
+	UpvalueObj* previous = nullptr;
+	UpvalueObj* upvalue = open_upvalues;
+	while (upvalue != nullptr && upvalue->location > local) {
+		previous = upvalue;
+		upvalue = upvalue->next;
+	}
+
+	if (upvalue != nullptr && upvalue->location == local)
+		return upvalue;
+
 	UpvalueObj* created_upvalue = new UpvalueObj(local);
+	created_upvalue->next = upvalue;
+
+	if (previous == nullptr)
+		open_upvalues = created_upvalue;
+	else
+		previous->next = created_upvalue;
 	return created_upvalue;
+}
+
+void VM::close_upvalues(Value* last) {
+	while (open_upvalues != nullptr && open_upvalues->location >= last) {
+		UpvalueObj* upvalue = open_upvalues;
+		upvalue->closed = *upvalue->location;
+		upvalue->location = &upvalue->closed;
+		open_upvalues = upvalue->next;
+	}
 }
 
 void VM::free() {
@@ -387,13 +427,14 @@ void VM::free_object(Object* obj) {
 	delete obj;
 }
 
-Value VM::pop_stack() {
+/*Value VM::pop_stack() {
 	Value current_val = stack_top();
 	stack.pop_back();
 	return current_val;
-}
+}*/
 
 Result VM::interpret(const std::string& input) {
+	std::cout << "here";
 	Parser parser{};
 	Compiler compiler(input, parser);
 	Layer layer;
@@ -402,12 +443,12 @@ Result VM::interpret(const std::string& input) {
 	if (function == nullptr) return COMPILE_ERROR;
 	function->type = OBJ_FUNCTION;
 
-	stack.push_back(make_object(function));
+	push_stack(make_object(function));
 	Closure* closure = new Closure(function);
 	pop_stack();
-	stack.push_back(make_object(closure));
+	push_stack(make_object(closure));
 	call_function(closure, 0);
-
+	
 	return run();
 }
 
@@ -430,25 +471,28 @@ Result VM::compile(const std::string& input, std::string& output) {
 }
 
 Value VM::peek(int distance) {
-	return stack[stack.size() - 1 - distance];
+	//return stack[stack.size() - 1 - distance];
+	//std::cout << "peek";  print_value(stack_top[-1]);
+	return stack_top[-1 - distance];
 }
 
 void VM::runtime_error(std::string format) {
 	std::cout << format;
 
-	for (int i = frames.size() - 2; i >= 0; i--) {
+	//for (int i = frames.size() - 2; i >= 0; i--) {
+	for (int i = frame_count - 1; i >= 0; i--) {
 		CallFrame* frame = &frames[i];
 		Function* func = frame->closure->function;
-		size_t instruction = &func->chunk.code[frame->program_counter] - &func->chunk.code[0] - 1;
+		size_t instruction = frame->program_counter - &func->chunk.code[0] - 1;
 		std::cout << "in " << (func->name == "" ? "script" : func->name) << " at line: " << func->chunk.lines[instruction] << std::endl;
 	}
-	stack = std::vector<Value>();
-	frames = std::vector<CallFrame>();
+	//stack = std::vector<Value>();
+	//frames = std::vector<CallFrame>();
 }
 
-Value VM::stack_top() {
-	return stack[stack.size() - 1];
-}
+//Value VM::stack_top() {
+//	return stack[stack.size() - 1];
+//}
 
 bool VM::values_equal(Value a, Value b) {
 	if (a.type != b.type) return false;

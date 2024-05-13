@@ -30,3 +30,7 @@ PLANNED:
 - Multi File support, packahes and Cosmos packet manager
 - REFACTOR AND FIX LEAKS, USE SMART POINTERS
 - Enums
+
+LIBRARIES:
+- Standard
+- Math
