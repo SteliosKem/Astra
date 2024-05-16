@@ -47,11 +47,16 @@ public:
 
 	void free();
 
+	Compiler* compiler;
+
 	Result interpret(const std::string& input);
 	Result compile(const std::string& input, std::string& output);
+
+	std::unordered_map<std::string, Value> globals;
+	UpvalueObj* open_upvalues = nullptr;
 private:
 	Object* objects = nullptr;
-	UpvalueObj* open_upvalues = nullptr;
+	
 	Result binary_operation(ValueType type, TokenType op);
 	Result run();
 	Value pop_stack() {
@@ -81,8 +86,12 @@ private:
 	UpvalueObj* capture_upvalue(Value* local);
 	void close_upvalues(Value* last);
 
+	std::vector<Object*> gray_stack;
+
 	bool call_value(Value callee, int arg_count);
 	bool call_function(Closure* closure, int arg_count);
 	void define_native(std::string name, NativeFn function);
-	std::unordered_map<std::string, Value> globals;
+	void collect_garbage();
+	void mark_roots();
 };
+

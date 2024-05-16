@@ -1,5 +1,5 @@
 #include "Vm.h"
-
+#include "Memory.h"
 #include <iostream>
 #include <cstdarg>
 #include <format>
@@ -436,10 +436,11 @@ void VM::free_object(Object* obj) {
 Result VM::interpret(const std::string& input) {
 	std::cout << "here";
 	Parser parser{};
-	Compiler compiler(input, parser);
+	Compiler comp(input, parser);
+	compiler = &comp;
 	Layer layer;
-	compiler.init_layer(&layer, TYPE_SCRIPT);
-	Function* function = compiler.compile();
+	compiler->init_layer(&layer, TYPE_SCRIPT);
+	Function* function = compiler->compile();
 	if (function == nullptr) return COMPILE_ERROR;
 	function->type = OBJ_FUNCTION;
 
@@ -525,3 +526,46 @@ void VM::concatenate_string() {
 }
 
 
+void VM::collect_garbage() {
+	std::cout << "Start Garbage Collector";
+	mark_roots();
+	std::cout << "End Garbage Collector";
+}
+
+void VM::mark_roots() {
+	for (Value* slot = stack; slot < stack_top; slot++) {
+		Memory::mark_value(*slot);
+	}
+
+	for (int i = 0; i < frame_count; i++) {
+		Memory::mark_object((Object*)frames[i].closure);
+	}
+	for (UpvalueObj* upvalue = open_upvalues; upvalue != nullptr; upvalue = upvalue->next) {
+		Memory::mark_object((Object*)upvalue);
+	}
+
+	Memory::mark_table(globals);
+	compiler->mark_compiler_roots();
+}
+
+void Memory::mark_value(Value value) {
+	if (is_object(value)) mark_object(get_object(value));
+}
+
+void Memory::mark_object(Object* object) {
+	if (object == nullptr) return;
+
+	std::cout << "mark " << (void*)object;
+	print_value(make_object(object));
+	std::cout << std::endl;
+
+	object->is_marked = true;
+
+	gray_stack.push_back(object);
+}
+
+void Memory::mark_table(std::unordered_map<std::string, Value>& map) {
+	for (auto& [key, value] : map) { 
+		mark_value(value);
+	}
+}

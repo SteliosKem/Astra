@@ -14,6 +14,7 @@ class Object {
 public:
 	ObjectType type;
 	Object* next;
+	bool is_marked = false;
 };
 
 class String : public Object {

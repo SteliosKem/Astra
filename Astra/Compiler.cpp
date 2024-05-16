@@ -3,6 +3,7 @@
 #include <iostream>
 #include <memory>
 #include "Value.h"
+#include "Memory.h"
 
 Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	lexer.source = src;
@@ -823,4 +824,11 @@ void Compiler::for_statement() {
 	current_loop_scope_depth = surrounding_scope_depth;
 
 	end_scope();
+}
+
+void Compiler::mark_compiler_roots() {
+	while (current != nullptr) {
+		Memory::mark_object((Object*)current->function);
+		current = current->enclosing;
+	}
 }

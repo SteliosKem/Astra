@@ -164,7 +164,7 @@ public:
 	void binary();
 	void literal();
 	void string();
-	
+	void mark_compiler_roots();
 private:
 	// ERRORS
 	void error_at(Token* token, const std::string& message);
@@ -237,4 +237,6 @@ private:
 	void return_statement();
 	int resolve_upvalue(Layer* layer, Token& name);
 	int add_upvalue(Layer* layer, uint8_t index, bool is_local);
+
+	
 };
