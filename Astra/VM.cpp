@@ -29,6 +29,7 @@ Value input_native(int arg_count, Value* args) {
 
 Result VM::binary_operation(ValueType type, TokenType op) {
 	do {
+		
 		if (!is_number(peek(0)) || !is_number(peek(1))) {
 			runtime_error("Operands must be numbers");
 			return RUNTIME_ERROR;
@@ -301,7 +302,93 @@ Result VM::run() {
 			pop_stack();
 			break;
 		}
+		case OC_CLASS:
+			push_stack(make_object(new ClassObj(get_string(read_constant(frame))->str)));
+			break;
+		case OC_GET_MEMBER: {
+			if (!is_instance(peek(0))) {
+				runtime_error("Non-instances have no members");
+				return RUNTIME_ERROR;
+			}
+
+			Instance* instance = get_instance(peek(0));
+			std::string& name = get_string(read_constant(frame))->str;
+			Value value;
+
+			if (instance->fields.find(name) != instance->fields.end()) {
+				value = instance->fields[name];
+				pop_stack();
+				push_stack(value);
+				break;
+			}
+			if (!bind_method(instance->class_target, name))
+				return RUNTIME_ERROR;
+			break;
 		}
+		case OC_SET_MEMBER: {
+			if (!is_instance(peek(1))) {
+				runtime_error("Non-instances do not have fields");
+				return RUNTIME_ERROR;
+			}
+			Instance* instance = get_instance(peek(1));
+			instance->fields[get_string(read_constant(frame))->str] = peek(0);
+			Value value = pop_stack();
+			pop_stack();
+			push_stack(value);
+			break;
+		}
+		case OC_GET_MEMBER_COMPOUND: {
+			Instance* instance = get_instance(peek(0));
+			std::string& name = get_string(read_constant(frame))->str;
+			push_stack(instance->fields[name]);
+			break;
+		}
+		case OC_METHOD:
+			define_method(get_string(read_constant(frame))->str);
+			break;
+		case OC_INVOKE: {
+			std::string method = get_string(read_constant(frame))->str;
+			int arg_count = read_byte(frame);
+			if (!invoke(method, arg_count)) {
+				return RUNTIME_ERROR;
+			}
+			frame = &frames[frame_count - 1];
+			break;
+		}
+		case OC_INHERIT: {
+			Value superclass = peek(1);
+			if (!is_class(superclass)) {
+				runtime_error("Superclass must be a class");
+				return RUNTIME_ERROR;
+			}
+			ClassObj* subclass = get_class(peek(0));
+			for (auto& [key, value] : get_class(superclass)->methods) {
+				subclass->methods[key] = value;
+			}
+			pop_stack();
+			break;
+		}
+		case OC_GET_SUPER: {
+			std::string name = get_string(read_constant(frame))->str;
+			ClassObj* superclass = get_class(pop_stack());
+
+			if (!bind_method(superclass, name)) {
+				return RUNTIME_ERROR;
+			}
+			break;
+		}
+		case OC_SUPER_INVOKE: {
+			std::string method = get_string(read_constant(frame))->str;
+			int arg_count = read_byte(frame);
+			ClassObj* superclass = get_class(pop_stack());
+			if (!invoke_from_class(superclass, method, arg_count)) {
+				return RUNTIME_ERROR;
+			}
+			frame = &frames[frame_count - 1];
+			break;
+		}
+		}
+		
 		
 		if (res == RUNTIME_ERROR) {
 			return RUNTIME_ERROR;
@@ -311,16 +398,80 @@ Result VM::run() {
 
 }
 
+bool VM::invoke(std::string name, int arg_count) {
+	Value receiver = peek(arg_count);
+
+	if (!is_instance(receiver)) {
+		runtime_error("Only instances have methods");
+		return false;
+	}
+
+	Instance* instance = get_instance(receiver);
+	if (instance->fields.find(name) != instance->fields.end()) {
+		Value value = instance->fields[name];
+		stack_top[-arg_count - 1] = value;
+		return call_value(value, arg_count);
+	}
+	return invoke_from_class(instance->class_target, name, arg_count);
+}
+
+bool VM::invoke_from_class(ClassObj* _class, std::string name, int arg_count) {
+	Value method;
+	if (_class->methods.find(name) == _class->methods.end()) {
+		runtime_error("Undefined member '" + name + "'");
+		return false;
+	}
+	method = _class->methods[name];
+	return call_function(get_closure(method), arg_count);
+}
+
+bool VM::bind_method(ClassObj* _class, std::string name) {
+	Value method;
+	if (_class->methods.find(name) == _class->methods.end()) {
+		runtime_error("Undefined member '" + name + "'");
+		return false;
+	}
+	method = _class->methods[name];
+	BoundMethod* bound = new BoundMethod(peek(0), get_closure(method));
+	pop_stack();
+	push_stack(make_object(bound));
+	return true;
+}
+
+void VM::define_method(std::string name) {
+	Value method = peek(0);
+	ClassObj* _class = get_class(peek(1));
+	_class->methods[name] = method;
+	pop_stack();
+}
+
 bool VM::call_value(Value callee, int arg_count) {
 	if (is_object(callee)) {
 		switch (get_object(callee)->type)
 		{
 		case OBJ_CLOSURE:
 			return call_function(get_closure(callee), arg_count);
+		case OBJ_CLASS: {
+			ClassObj* _class = get_class(callee);
+			stack_top[-arg_count - 1] = make_object(new Instance(_class));
+			Value initializer;
+			if (_class->methods.find("construct") != _class->methods.end()) {
+				return call_function(get_closure(_class->methods["construct"]), arg_count);
+			}
+			else if (arg_count != 0) {
+				runtime_error("Expected 0 arguments but got " + arg_count);
+				return false;
+			}
+			return true;
+		}
+		case OBJ_BOUND_METHOD: {
+			BoundMethod* bound = get_bound_method(callee);
+			stack_top[-arg_count - 1] = bound->reciever;
+			return call_function(bound->method, arg_count);
+		}
 		case OBJ_NATIVE:
 		{
 			NativeFn native = get_native(callee)->native_fn;
-			//Value result = native(arg_count, &stack[stack.size() - 1] - arg_count);
 			Value result = native(arg_count, stack_top - arg_count);
 			for (int i = 0; i < arg_count + 1; i++) {
 				pop_stack();
@@ -328,6 +479,7 @@ bool VM::call_value(Value callee, int arg_count) {
 			push_stack(result);
 			return true;
 		}
+
 		}
 		
 	}
@@ -350,29 +502,6 @@ bool VM::call_function(Closure* closure, int arg_count) {
 		return false;
 	}
 	
-	/*std::cout << "FRONT: ";
-
-	for (int i = stack.size() - 1 - arg_count; i < stack.size(); i++) {
-		std::cout << i;
-		print_value(stack[i]);
-	}
-	std::cout << frames.size() << " " << std::endl;
-
-	std::cout << "BACK: ";
-
-	for (int i = 0; i < stack.size(); i++) {
-		std::cout << i;
-		print_value(stack[i]);
-	}
-	std::cout << frames.size() << " " << std::endl;*/
-
-	//for (int i = 0; i < arg_count; i++) {
-	//	print_value(*( & (stack[stack.size() - 1]) - arg_count + i));
-	//}
-
-	
-	
-	//frames.push_back(CallFrame(closure, 0, &(stack[stack.size() - 1]) - arg_count, stack.size() -1 - arg_count));
 	CallFrame* frame = &frames[frame_count++];
 	frame->closure = closure;
 	frame->program_counter = &closure->function->chunk.code[0];
@@ -427,12 +556,6 @@ void VM::free_object(Object* obj) {
 	delete obj;
 }
 
-/*Value VM::pop_stack() {
-	Value current_val = stack_top();
-	stack.pop_back();
-	return current_val;
-}*/
-
 Result VM::interpret(const std::string& input) {
 	std::cout << "here";
 	Parser parser{};
@@ -472,28 +595,21 @@ Result VM::compile(const std::string& input, std::string& output) {
 }
 
 Value VM::peek(int distance) {
-	//return stack[stack.size() - 1 - distance];
-	//std::cout << "peek";  print_value(stack_top[-1]);
 	return stack_top[-1 - distance];
 }
 
 void VM::runtime_error(std::string format) {
 	std::cout << format;
 
-	//for (int i = frames.size() - 2; i >= 0; i--) {
 	for (int i = frame_count - 1; i >= 0; i--) {
 		CallFrame* frame = &frames[i];
 		Function* func = frame->closure->function;
 		size_t instruction = frame->program_counter - &func->chunk.code[0] - 1;
 		std::cout << "in " << (func->name == "" ? "script" : func->name) << " at line: " << func->chunk.lines[instruction] << std::endl;
 	}
-	//stack = std::vector<Value>();
+	stack_top = stack;
 	//frames = std::vector<CallFrame>();
 }
-
-//Value VM::stack_top() {
-//	return stack[stack.size() - 1];
-//}
 
 bool VM::values_equal(Value a, Value b) {
 	if (a.type != b.type) return false;
@@ -561,7 +677,7 @@ void Memory::mark_object(Object* object) {
 
 	object->is_marked = true;
 
-	gray_stack.push_back(object);
+	//gray_stack.push_back(object);
 }
 
 void Memory::mark_table(std::unordered_map<std::string, Value>& map) {

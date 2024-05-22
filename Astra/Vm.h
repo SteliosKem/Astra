@@ -93,5 +93,10 @@ private:
 	void define_native(std::string name, NativeFn function);
 	void collect_garbage();
 	void mark_roots();
+
+	void define_method(std::string name);
+	bool bind_method(ClassObj* _class, std::string name);
+	bool invoke(std::string name, int arg_count);
+	bool invoke_from_class(ClassObj* _class, std::string name, int arg_count);
 };
 

@@ -14,6 +14,10 @@ CURRENT:
 - Functions
 - Native Functions (time, input)
 - Multiline comments
+- Closures
+- Classes
+- Methods
+- Inheritance (FULL OOP!)
 
 
 PLANNED:
@@ -21,6 +25,7 @@ PLANNED:
 - String Interpolation
 - String Utils
 - Actual Errors
+- Default Function Parameters, (Parameter Accessing?)
 - Arrays
 - ML file and external VM
 - Making binaries with VM
@@ -30,6 +35,17 @@ PLANNED:
 - Multi File support, packahes and Cosmos packet manager
 - REFACTOR AND FIX LEAKS, USE SMART POINTERS
 - Enums
+- Block Expressions let var = {let b = 5; if b == 5 respond 2;};
+- Lambda Functions: let func = <parameters> {body}
+- Lambda Classes: let ClassA = 
+- ? : Operator
+- Const
+- Class Instances to string _format()
+- Immutable Objects
+- Public Private
+- Static
+Maybe:
+- Types
 
 LIBRARIES:
 - Standard

@@ -10,6 +10,11 @@ public:
 	bool is_local;
 };
 
+struct ClassLayer {
+	ClassLayer* enclosing;
+	bool has_superclass = false;
+};
+
 enum Precedence {
 	PREC_NONE,
 	PREC_ASSIGNMENT,
@@ -28,7 +33,9 @@ enum Precedence {
 
 enum FunctionType {
 	TYPE_FUNCTION,
-	TYPE_SCRIPT
+	TYPE_SCRIPT,
+	TYPE_METHOD,
+	TYPE_CONSTRUCTOR
 };
 
 struct Local {
@@ -79,7 +86,10 @@ enum ParseFn {
 	FN_VARIABLE,
 	FN_AND,
 	FN_OR,
-	FN_CALL
+	FN_CALL,
+	FN_DOT,
+	FN_THIS,
+	FN_SUPER
 };
 
 struct ParseRule {
@@ -127,6 +137,11 @@ public:
 		Local* local = &current->locals[current->local_count++];
 		local->depth = 0;
 		local->name.value = "";
+		local->is_captured = false;
+		if (type != TYPE_FUNCTION)
+			local->name.value = "this";
+		else
+			local->name.value = "";
 	}
 
 	// HELPER FUNCTIONS
@@ -175,7 +190,12 @@ private:
 
 	// EMISSIONS
 	void emit_return() {
-		emit_byte(OC_VOID);
+		if (current->function_type == TYPE_CONSTRUCTOR) {
+			emit_bytes(OC_GET_LOCAL, 0);
+		}
+		else {
+			emit_byte(OC_VOID);
+		}
 		emit_byte(OC_RETURN);
 	}
 	void emit_bytes(uint8_t b1, uint8_t b2);
@@ -238,5 +258,11 @@ private:
 	int resolve_upvalue(Layer* layer, Token& name);
 	int add_upvalue(Layer* layer, uint8_t index, bool is_local);
 
-	
+	// OOP
+	void class_declaration();
+	void access();
+	void parse_method();
+	void this_oop();
+	ClassLayer* current_class = nullptr;
+	void parse_super();
 };

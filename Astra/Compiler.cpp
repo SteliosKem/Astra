@@ -13,7 +13,7 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	rules[TOKEN_L_BRACE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_R_BRACE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_COMMA] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
-	rules[TOKEN_DOT] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_DOT] = ParseRule{ FN_NONE,     FN_DOT,   PREC_CALL };
 	rules[TOKEN_DOUBLE_DOT] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_MINUS] = ParseRule{ FN_UNARY,     FN_BINARY,   PREC_TERM };
 	rules[TOKEN_PLUS] = ParseRule{ FN_NONE,     FN_BINARY,   PREC_TERM };
@@ -42,8 +42,8 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	rules[TOKEN_OR] = ParseRule{ FN_NONE,     FN_OR,   PREC_OR };
 	rules[TOKEN_PRINT] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_RETURN] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
-	rules[TOKEN_SUPER] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
-	rules[TOKEN_THIS] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_SUPER] = ParseRule{ FN_SUPER,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_THIS] = ParseRule{ FN_THIS,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_TRUE] = ParseRule{ FN_LITERAL,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_VAR] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_WHILE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
@@ -270,8 +270,95 @@ void Compiler::call_prec_function(ParseFn func) {
 		return or_operation();
 	case FN_CALL:
 		return function_call();
+	case FN_DOT:
+		return access();
+	case FN_THIS:
+		return this_oop();
+	case FN_SUPER:
+		return parse_super();
 	default:
 		break;
+	}
+}
+
+void Compiler::parse_super() {
+	if (current_class == nullptr)
+		error("Can't use 'super' outside of a class");
+	else if (!current_class->has_superclass)
+		error("Can't use 'super' in a class with no superclass");
+	consume(TOKEN_DOT, "Expected '.' after 'super'");
+	consume(TOKEN_ID, "Expected superclass method name");
+	uint8_t name = identifier_constant(&parser.previous_token);
+
+	Token this_tok;
+	this_tok.value = "this";
+	Token super_tok;
+	super_tok.value = "super";
+	named_variable(this_tok);
+	if (match(TOKEN_L_PAR)) {
+		uint8_t arg_count = argument_list();
+		named_variable(super_tok);
+		emit_bytes(OC_SUPER_INVOKE, name);
+		emit_byte(arg_count);
+	}
+	else {
+		named_variable(super_tok);
+		emit_bytes(OC_GET_SUPER, name);
+	}
+}
+
+void Compiler::this_oop() {
+	if (current_class == nullptr) {
+		error("Can't use 'this' outside of a class");
+		return;
+	}
+	//can_assign = false;
+	variable();
+}
+
+void Compiler::access() {
+	consume(TOKEN_ID, "Expected name of instance member after '.'");
+	uint8_t name = identifier_constant(&parser.previous_token);
+
+	if (can_assign && match(TOKEN_EQUAL)) {
+		expression();
+		emit_bytes(OC_SET_MEMBER, name);
+	}
+	else if (match(TOKEN_L_PAR)) {
+		uint8_t arg_count = argument_list();
+		emit_bytes(OC_INVOKE, name);
+		emit_byte(arg_count);
+	}
+	else if (can_assign && match(TOKEN_PLUS_EQUAL)) {						// NEED TO OPTIMIZE
+		emit_bytes(OC_GET_MEMBER_COMPOUND, name);
+		expression();
+		
+		emit_byte(OC_ADD);
+		emit_bytes(OC_SET_MEMBER, name);
+	}
+	else if (can_assign && match(TOKEN_MINUS_EQUAL)) {
+		emit_bytes(OC_GET_MEMBER_COMPOUND, name);
+		expression();
+		
+		emit_byte(OC_SUBTRACT);
+		emit_bytes(OC_SET_MEMBER, name);
+	}
+	else if (can_assign && match(TOKEN_STAR_EQUAL)) {
+		emit_bytes(OC_GET_MEMBER_COMPOUND, name);
+		expression();
+		
+		emit_byte(OC_MULTIPLY);
+		emit_bytes(OC_SET_MEMBER, name);
+	}
+	else if (can_assign && match(TOKEN_SLASH_EQUAL)) {
+		emit_bytes(OC_GET_MEMBER_COMPOUND, name);
+		expression();
+		
+		emit_byte(OC_DIVIDE);
+		emit_bytes(OC_SET_MEMBER, name);
+	}
+	else {
+		emit_bytes(OC_GET_MEMBER, name);
 	}
 }
 
@@ -341,12 +428,69 @@ void Compiler::declaration() {
 	if (match(TOKEN_VAR)) {
 		variable_declaration();
 	}
+	else if (match(TOKEN_CLASS)) {
+		class_declaration();
+	}
 	else if (match(TOKEN_FUN)) {
 		function_declaration();
 	}
 	else statement();
 	
 	if (parser.panic) synchronize();
+}
+
+void Compiler::class_declaration() {
+	consume(TOKEN_ID, "Expected class name");
+	Token class_name = parser.previous_token;
+	uint8_t name_constant = identifier_constant(&parser.previous_token);
+	declare_variable();
+
+	emit_bytes(OC_CLASS, name_constant);
+	define_variable(name_constant);
+
+	ClassLayer class_layer;
+	class_layer.enclosing = current_class;
+	current_class = &class_layer;
+
+	if (match(TOKEN_DOUBLE_DOT)) {
+		consume(TOKEN_ID, "Expected class name");
+		variable();
+		if (equal_identifiers(class_name, parser.previous_token))
+			error("A class can't inherit from itself");
+
+		new_scope();
+		Token tok;
+		tok.value = "super";
+		add_local(current, tok);
+		define_variable(0);
+
+		named_variable(class_name);
+		emit_byte(OC_INHERIT);
+		class_layer.has_superclass = true;
+	}
+
+	named_variable(class_name);
+	consume(TOKEN_L_BRACE, "Expected '{'");
+	while (parser.current_token.type != TOKEN_R_BRACE && parser.current_token.type != TOKEN_EOF) {
+		parse_method();
+	}
+	consume(TOKEN_R_BRACE, "Expected '}'");
+	emit_byte(OC_POP);
+
+	if (class_layer.has_superclass)
+		end_scope();
+
+	current_class = current_class->enclosing;
+}
+
+void Compiler::parse_method() {
+	consume(TOKEN_ID, "Expected method name");
+	uint8_t constant = identifier_constant(&parser.previous_token);
+	FunctionType type = TYPE_METHOD;
+	if (parser.previous_token.value == "construct")
+		type = TYPE_CONSTRUCTOR;
+	make_function(type);
+	emit_bytes(OC_METHOD, constant);
 }
 
 void Compiler::function_declaration() {
@@ -424,6 +568,11 @@ void Compiler::return_statement() {
 	if (match(TOKEN_SEMICOLON)) {
 		emit_return();
 		return;
+	}
+	else {
+		if (current->function_type == TYPE_CONSTRUCTOR) {
+			error("Can't return a value from a constructor");
+		}
 	}
 	expression();
 	consume(TOKEN_SEMICOLON, "Expected ';'");

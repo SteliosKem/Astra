@@ -1,8 +1,38 @@
 #pragma once
 #include <vector>
 #include <variant>
-#include "Object.h"
 #include <memory>
+#include <string>
+#include <unordered_map>
+
+enum ObjectType {
+
+	OBJ_STRING,
+	OBJ_FUNCTION,
+	OBJ_NATIVE,
+	OBJ_CLOSURE,
+	OBJ_UPVALUE,
+	OBJ_CLASS,
+	OBJ_INSTANCE,
+	OBJ_BOUND_METHOD
+};
+
+class Object {
+public:
+	ObjectType type;
+	Object* next;
+	bool is_marked = false;
+};
+
+class String : public Object {
+public:
+	String(std::string src) : str(src) {
+		type = OBJ_STRING;
+	}
+	std::string str;
+};
+
+
 
 enum ValueType {
 	VALUE_VOID,
@@ -14,6 +44,29 @@ enum ValueType {
 struct Value {
 	ValueType type;
 	std::variant<bool, double, Object*> value;
+};
+
+
+
+class ClassObj : public Object {
+public:
+	ClassObj() {}
+	ClassObj(std::string src) : name(src) {
+		type = OBJ_CLASS;
+	}
+	std::string name;
+	std::unordered_map<std::string, Value> methods;
+};
+
+
+class Instance : public Object {
+public:
+	Instance(ClassObj* _class_target) {
+		class_target = _class_target;
+		type = OBJ_INSTANCE;
+	}
+	ClassObj* class_target;
+	std::unordered_map<std::string, Value> fields;
 };
 
 class ValueArray {
@@ -38,10 +91,16 @@ bool is_void(Value val);
 bool is_number(Value val);
 bool is_object(Value val);
 bool is_string(Value val);
+bool is_class(Value val);
+bool is_instance(Value val);
+
 
 bool get_bool(Value val);
 double get_number(Value val);
 Object* get_object(Value val);
 String* get_string(Value val);
+ClassObj* get_class(Value val);
+Instance* get_instance(Value val);
+
 
 bool is_object_type(Value value, ObjectType type);

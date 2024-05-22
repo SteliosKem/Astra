@@ -107,6 +107,24 @@ int Chunk::disassemble_instruction(int offset) {
 
 		return offset;
 	}
+	case OC_CLASS:
+		return constant_instruction("OC_CLASS", offset);
+	case OC_GET_MEMBER:
+		return constant_instruction("OC_GET_MEMBER", offset);
+	case OC_SET_MEMBER:
+		return constant_instruction("OC_SET_MEMBER", offset);
+	case OC_METHOD:
+		return constant_instruction("OC_METHOD", offset);
+	case OC_GET_MEMBER_COMPOUND:
+		return constant_instruction("OC_GET_MEMBER_COMPOUND", offset);
+	case OC_INVOKE:
+		return invoke_instruction("OC_INVOKE", offset);
+	case OC_INHERIT:
+		return simple_instruction("OP_INHERIT", offset);
+	case OC_GET_SUPER:
+		return constant_instruction("OC_GET_SUPER", offset);
+	case OC_SUPER_INVOKE:
+		return invoke_instruction("OC_SUPER_INVOKE", offset);
 	default:
 		std::cout << "Unkown OpCode " << instruction;
 		return offset + 1;
@@ -146,6 +164,15 @@ int Chunk::jump_instruction(const char* name, int sign, int offset) {
 	return offset + 3;
 }
 
+int Chunk::invoke_instruction(const char* name, int offset) {
+	uint8_t constant = code[offset + 1];
+	uint8_t arg_count = code[offset + 2];
+	std::cout << name << " (" << unsigned(arg_count) << ") " << unsigned(constant) << " ";
+	print_value(constants.values[constant]);
+	std::cout << std::endl;
+	return offset + 3;
+}
+
 bool is_function(Value val) {
 	return get_object(val)->type == OBJ_FUNCTION;
 }
@@ -176,15 +203,34 @@ void print_object(Value value) {
 	}
 	case OBJ_NATIVE:
 		std::cout << "<native function>";
+		break;
 	case OBJ_UPVALUE:
 		std::cout << "upvalue";
+		break;
 	case OBJ_CLOSURE: {
 		Function* func = get_closure(value)->function;
 		if (func->name == "") std::cout << "<script>";
 		else std::cout << "<function " << func->name << '>';
 		break;
 	}
-		
+	case OBJ_CLASS:
+		std::cout << "<class " << get_class(value)->name << ">";
+		break;
+	case OBJ_INSTANCE:
+		std::cout << "<" << get_instance(value)->class_target->name << " instance>";
+		break;
+	case OBJ_BOUND_METHOD: {
+		Function* func = get_bound_method(value)->method->function;
+		std::cout << "<function " << func->name << '>';
+		break;
+	}
 	}
 
+}
+
+BoundMethod* get_bound_method(Value val) {
+	return (BoundMethod*)get_object(val);
+}
+bool is_bound_method(Value val) {
+	return val.type == VALUE_OBJECT && std::get<Object*>(val.value)->type == OBJ_BOUND_METHOD;
 }

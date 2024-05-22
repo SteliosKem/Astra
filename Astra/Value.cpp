@@ -66,6 +66,13 @@ bool is_object(Value val) {
 bool is_string(Value val) {
 	return val.type == VALUE_OBJECT && std::get<Object*>(val.value)->type == OBJ_STRING;
 }
+bool is_class(Value val) {
+	return val.type == VALUE_OBJECT && std::get<Object*>(val.value)->type == OBJ_CLASS;
+}
+bool is_instance(Value val) {
+	return val.type == VALUE_OBJECT && std::get<Object*>(val.value)->type == OBJ_INSTANCE;
+}
+
 
 double get_number(Value val) {
 	return std::get<double>(val.value);
@@ -79,6 +86,13 @@ Object* get_object(Value val) {
 String* get_string(Value val) {
 	return (String*)get_object(val);
 }
+ClassObj* get_class(Value val) {
+	return (ClassObj*)get_object(val);
+}
+Instance* get_instance(Value val) {
+	return (Instance*)get_object(val);
+}
+
 
 bool is_object_type(Value value, ObjectType type) {
 	return is_object(value) && get_object(value)->type == type;

@@ -32,7 +32,16 @@ enum OpCode {
 	OC_CLOSURE,
 	OC_SET_UPVALUE,
 	OC_GET_UPVALUE,
-	OC_CLOSE_UPVALUE
+	OC_CLOSE_UPVALUE,
+	OC_CLASS,
+	OC_SET_MEMBER,
+	OC_GET_MEMBER,
+	OC_METHOD,
+	OC_GET_MEMBER_COMPOUND,
+	OC_INVOKE,
+	OC_INHERIT,
+	OC_GET_SUPER,
+	OC_SUPER_INVOKE
 };
 
 class Chunk {
@@ -51,6 +60,7 @@ private:
 	int constant_instruction(const char* name, int offset);
 	static int simple_instruction(const char* name, int offset);
 	int byte_instruction(const char* name, int offset);
+	int invoke_instruction(const char* name, int offset);
 	int jump_instruction(const char* name, int sign, int offset);
 };
 
@@ -88,7 +98,25 @@ public:
 	int upvalue_count;
 };
 
+
+class BoundMethod : public Object {
+public:
+	BoundMethod() {
+		type = OBJ_BOUND_METHOD;
+	}
+	BoundMethod(Value rec, Closure* _method) {
+		reciever = rec;
+		method = _method;
+		type = OBJ_BOUND_METHOD;
+	}
+	Value reciever;
+	Closure* method;
+};
+
 bool is_function(Value val);
 bool is_closure(Value val);
 Function* get_function(Value val);
 Closure* get_closure(Value val);
+
+bool is_bound_method(Value val);
+BoundMethod* get_bound_method(Value val);
