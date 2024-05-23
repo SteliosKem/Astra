@@ -1,0 +1,16 @@
+// Lamda functions
+let lambda = <param_a, param_b> {
+    print param_a;
+    print param_b;
+};
+
+lambda(2, 5);
+
+fn my_function(func_parameter) {
+    print func_parameter();
+}
+
+my_function(<> {
+    print "Lamba functions are helpful!";
+    return "returned from lamda";
+});

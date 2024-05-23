@@ -100,6 +100,7 @@ struct ParseRule {
 
 struct Parser {
 	Parser() {}
+	Parser* enclosing = nullptr;
 	Token current_token;
 	Token previous_token;
 	bool error = false;
@@ -109,7 +110,7 @@ struct Parser {
 
 class Compiler {
 public:
-	ParseRule rules[50];
+	ParseRule rules[52];
 	Parser& parser;
 	Lexer lexer;
 	Chunk* current_chunk() {

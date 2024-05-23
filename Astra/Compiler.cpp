@@ -10,7 +10,7 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	
 	rules[TOKEN_L_PAR] = ParseRule{ FN_GROUPING, FN_CALL, PREC_CALL };
 	rules[TOKEN_R_PAR] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
-	rules[TOKEN_L_BRACE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_L_BRACE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_PRIMARY };
 	rules[TOKEN_R_BRACE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_COMMA] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_DOT] = ParseRule{ FN_NONE,     FN_DOT,   PREC_CALL };
@@ -30,6 +30,7 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	rules[TOKEN_LESS_EQUAL] = ParseRule{ FN_NONE,     FN_BINARY,   PREC_COMPARISON };
 	rules[TOKEN_ID] = ParseRule{ FN_VARIABLE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_STR] = ParseRule{ FN_STRING,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_INTER_STR] = ParseRule{ FN_STRING,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_NUM] = ParseRule{ FN_NUMBER,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_AND] = ParseRule{ FN_NONE,     FN_AND,   PREC_AND };
 	rules[TOKEN_CLASS] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
@@ -42,6 +43,7 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	rules[TOKEN_OR] = ParseRule{ FN_NONE,     FN_OR,   PREC_OR };
 	rules[TOKEN_PRINT] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_RETURN] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_RESPOND] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_SUPER] = ParseRule{ FN_SUPER,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_THIS] = ParseRule{ FN_THIS,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_TRUE] = ParseRule{ FN_LITERAL,     FN_NONE,   PREC_NONE };
@@ -61,8 +63,7 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 }
 
 Function* Compiler::compile() {
-	parser.current_token = Token(TOKEN_AND, "", 0);
-	/*while (true) {
+	while (true) {
 		Token token = lexer.lex();
 		if (token.line != lexer.line) {
 			std::cout << "    " << token.line;
@@ -74,7 +75,7 @@ Function* Compiler::compile() {
 		if (token.type == TOKEN_EOF) break;
 	}
 	lexer.pos = -1;
-	lexer.line = 0;*/
+	lexer.line = 0;
 	current->function = new Function();
 	next();
 	while (!match(TOKEN_EOF)) {
@@ -393,7 +394,37 @@ void Compiler::number() {
 }
 
 void Compiler::expression() {
-	parse_precedence(PREC_ASSIGNMENT);
+	
+	if (parser.current_token.type == TOKEN_LESS) {
+		Layer layer;
+		init_layer(&layer, TYPE_FUNCTION);
+		new_scope();
+		consume(TOKEN_LESS, "Expected '<'");
+		if (parser.current_token.type != TOKEN_GREATER) {
+			do {
+				current->function->arity++;
+				if (current->function->arity > 255) {
+					error("Can't have more than 255 parameters");
+				}
+				uint8_t constant = parse_variable("Expected parameter name");
+				define_variable(constant);
+			} while (match(TOKEN_COMMA));
+		}
+		consume(TOKEN_GREATER, "Expected '>'");
+		consume(TOKEN_L_BRACE, "Expected '{'");
+		compount_statement();
+
+		Function* function = end();
+		function->type = OBJ_FUNCTION;
+		emit_bytes(OC_CLOSURE, make_constant(make_object(function)));
+
+		for (int i = 0; i < function->upvalue_count; i++) {
+			emit_byte(layer.upvalues[i].is_local ? 1 : 0);
+			emit_byte(layer.upvalues[i].index);
+		}
+	}
+	else
+		parse_precedence(PREC_ASSIGNMENT);
 }
 
 void Compiler::consume(TokenType type, const std::string& message) {
@@ -421,7 +452,37 @@ void Compiler::literal() {
 }
 
 void Compiler::string() {
-	emit_constant(make_string(new String(parser.previous_token.value)));
+	if (parser.previous_token.type == TOKEN_INTER_STR) {							// WIP
+		std::string new_val = "";
+		std::string& prev = parser.previous_token.value;
+		for (int i = 0; i < prev.size(); i++) {
+			if (prev[i] == '[' && i + 1 < prev.size() && prev[i + 1] == '{') {
+				emit_constant(make_string(new String(new_val)));
+				
+				i++;
+				if (++i >= prev.size()) {
+					error("Unterminated '[{'");
+					return;
+				}
+				std::string inter = "";
+				while (i < prev.size()) {
+					if (i + 1 < prev.size() && i + 2 < prev.size() && prev[i] == ']' && prev[i + 1] && '}') {
+						i += 2;
+						break;
+					}
+					inter += prev[i];
+					i++;
+				}
+				Lexer inter_lex(inter);
+				expression();
+				emit_byte(OC_ADD);
+			}
+			else
+				new_val += i;
+		}
+	}
+	else
+		emit_constant(make_string(new String(parser.previous_token.value)));
 }
 
 void Compiler::declaration() {

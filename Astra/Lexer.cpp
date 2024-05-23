@@ -78,8 +78,11 @@ Token Lexer::lex() {
 
 Token Lexer::str() {
     std::string string;
+    bool interpolated = false;
     next();
     while (current_char != '"' && current_char != '\0') {           // Make the string body
+        if (current_char == '[' && source[pos + 1] == '{')
+            interpolated = true;
         if (current_char == '\n')
             line++;
         string += current_char;
@@ -88,6 +91,8 @@ Token Lexer::str() {
 
     if (current_char == '\0')
         return Token("Unterminated string", line);                  // If the lexer reaches the end without closing the string return an error
+    if (interpolated)
+        return Token(TOKEN_INTER_STR, string, line);
     return Token(TOKEN_STR, string, line);
 }
 
