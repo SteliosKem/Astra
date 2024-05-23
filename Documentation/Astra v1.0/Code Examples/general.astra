@@ -1,0 +1,45 @@
+// These are comments.
+// Comment allow you to describe code, or write anything you want and they get ignored on compilation.
+// Comments starting with '//' will include everything written until the end of the line.
+// Comments that start with '/*' and end with '*/' include everything written in-between.
+// When you want to temporarily disable code, you can comment it out so you don't lose it.
+
+// Types:
+// Astra supports the following types: Number, Boolean, String, Void, and User defined types.
+// Arrays, Enums, Tuples and other types are supported yet.
+// The number type is made up of integers and floating point numbers.
+// The boolean type can contain either a true or false value.
+// The string type contains any text surrounded by double quotes (" ").
+// The void type means that there is no value.
+
+// You can output to the console by writing 'print' and then a value;
+print "Hello, world!";
+
+// Operations:
+// Astra supports the following arithmetic operations:
+print 2 + 8;        // Addition
+print 8 - 2;        // Subtraction
+print 4 * 2.5;      // Multiplication
+print 8 / 4;        // Division
+print 2 ^ 3;
+print 2 * (9 + 1);  // Parentheses change the order of operations
+
+// It also supports the following comparison operations:
+print 2 < 8;        // Less than
+print 8 > 2;        // Greater than
+print 4 == 2.5;     // Equal to
+print 8 != 4;       // Not equal to
+print 2 <= 3;       // Less or equal to
+print 2 >= 2;       // Greater or equal to
+
+// Logical operations are also supported:
+print false and false;
+print true or false;
+print !true;
+
+// Everything that outputs a value makes up an expression.
+// All aforementioned operations are expressions.
+
+// In Astra, statements are the building blocks of any program.
+// Statements are like commands. They have a meaning and do something useful.
+// 'print' is a statement. All statements have to end with a semicolon (';').

@@ -407,6 +407,10 @@ bool VM::invoke(std::string name, int arg_count) {
 	}
 
 	Instance* instance = get_instance(receiver);
+	if (name == "construct") {
+		runtime_error("Can't call the constructor");
+		return false;
+	}
 	if (instance->fields.find(name) != instance->fields.end()) {
 		Value value = instance->fields[name];
 		stack_top[-arg_count - 1] = value;

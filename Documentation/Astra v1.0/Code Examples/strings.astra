@@ -1,0 +1,5 @@
+// String is the data type that contains text.
+// This section will be properly updated when extensive support for strings is implemented.
+
+// Right now the only supported string operation is concatenation, which happens like this:
+let hello_world = "Hello, " + "world!";         // This concatenation returns the string "Hello, world!";

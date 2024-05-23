@@ -1,0 +1,83 @@
+// If statements allow you to execute code if and only if certain conditions are met.
+// They are expressed like this:
+// if condition do_something;
+// Expample:
+if 5 == 5
+    print "5 is equal to 5!";
+
+// This may seem trivial but will be really helpful in every project.
+// If statements, and all of the next ones you are about to learn, are better used with blocks.
+let age = 19;
+let can_drink;
+
+if age >= 18 {                              // You can execute multiple statements like this
+    print "You are an adult".
+    can_drink = true;
+    print "You now can legally drink!";
+}
+
+// If the condition is not true, and you want to add functionality that responds to that, you can do that with an if-else statement.
+if age >= 18 {
+    print "You are an adult".
+    can_drink = true;
+    print "You now can legally drink!";
+}
+else {
+    print "You are not an adult yet. You cannot drink.";
+    can_drink = false;
+}
+
+// You can also take advantage of 'else if'. It is not a statement by itself, but it is extremely useful.
+if age >= 60 {
+    "You are really old!";
+}
+else if age > 18 {
+    print "You are an adult!";
+}
+else if age >= 0 {
+    print "You are not an adult!";
+}
+else {
+    print "Huh? You cannot have a negative age!";
+}
+
+// If a condition is met in any of those statements, the following ones will be ignored completely.
+
+// 'while' loops allow you to conditionally execute code multiple times.
+// Until the condition is false, whatever is inside the loop body will be executed again and again.
+
+let count_down = 10;
+while count_down > 0 {
+    print count_down;
+    count_down -= 1;
+}
+
+// If the condition never becomes false, an infinite loop will happen and that generally is not a good idea.
+
+// You can end a loop prematurely with a 'break' statement.
+let count_down = 10;
+while count_down > 0 {
+    if count_down == 4 {
+        break;                          // If this gets executed the following code inside the loop will be ignored and execution will follow after the loop.
+    }
+    print count_down;
+    count_down -= 1;
+}
+
+// You can also ignore an iteration of the loop and go to the next one with a 'continue' statement;
+let count_down = 10;
+while count_down > 0 {
+    if count_down == 4 {
+        continue;                       // If this gets executed the following code inside the loop will be ignored this iteration will be skipped.
+    }
+    print count_down;
+    count_down -= 1;
+}
+
+// 'for' loops behave like 'while' loops but they are used a bit differently.
+// You can express a 'for' loop like this:
+// for (variable_declaration); (loop_condition); (ending_statement): {loop_body}       The ending statement executes at the end of every iteration
+// Example:
+for let count = 0; count < 5; count += 1: {         // Here we declare a variable count, the condition for the loop is that count is less than 5
+    print count;                                    // and after every iteration of the loop we add 1 to count;
+}

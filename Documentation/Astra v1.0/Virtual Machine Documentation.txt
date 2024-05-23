@@ -1,0 +1,35 @@
+The AVM supports a great number of instructions, and any language that emits AVM bytecode must follow certain rules.
+
+The OC_CONSTANT instruction reads the constant (the next byte) from the bytecode and pushes it to the top of the VM stack.
+The instructions OC_VOID, OC_TRUE, OC_FALSE, are literal instructions that represent those values.
+The instructions OC_ADD, OC_SUBTRACT, OC_MULTIPLY, OC_DIVIDE, OC_POWER, perform operations on the value exactly before the instruction (B operand) and the one before that (A operand)
+The OC_NEGATE instruction negates the value before the instruction.
+The OC_RETURN instruction returns from a function the value before it. If it is on the end of the code the value before it must be OC_VOID.
+OC_NOT,
+OC_EQUAL,
+OC_LESS,
+OC_GREATER,
+OC_PRINT,
+OC_POP,
+OC_DEFINE_GLOBAL,
+OC_GET_GLOBAL,
+OC_SET_GLOBAL,
+OC_GET_LOCAL,
+OC_SET_LOCAL,
+OC_JMP_IF_FALSE,
+OC_JMP,
+OC_LOOP,
+OC_CALL,
+OC_CLOSURE,
+OC_SET_UPVALUE,
+OC_GET_UPVALUE,
+OC_CLOSE_UPVALUE,
+OC_CLASS,
+OC_SET_MEMBER,
+OC_GET_MEMBER,
+OC_METHOD,
+OC_GET_MEMBER_COMPOUND,
+OC_INVOKE,
+OC_INHERIT,
+OC_GET_SUPER,
+OC_SUPER_INVOKE

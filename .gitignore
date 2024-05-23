@@ -396,3 +396,8 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+language-configuration.json
+package.json
+vsc-extension-quickstart.md
+CHANGELOG.md
+.gitattributes

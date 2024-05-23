@@ -1,0 +1,90 @@
+// Astra allows users to create their own types by using classes.
+// A class is like a blueprint from which you can create objects.
+// It can hold specific attributes and properties.
+// Example:
+class Fruit {}              // Create a class. It is empty in this example.
+
+let apple = Fruit();        // By calling a class you create an instance of it, an object that follows its blueprint
+apple.color = "red";        // You can access and alter properties of a class.
+                            // In this example we added a property that is not defined inside the class. While Astra allows this, you are greately advised against using this.
+
+// Classes can have methods, which are functions that act upon the instance from which they are called.
+class Car {
+    start_up() {
+        print "Engine is starting up";
+        this.started_up = true;         // You can access properties of the class with 'this'. It is like accessing from an instance.
+    }
+
+    move() {
+        if !this.started_up {
+            print "Engine has not started yet!";
+        }
+        else {
+            print "The car is moving!";
+        }
+    }
+}
+
+let my_car = Car();
+my_car.start_up();             // You call methods like this
+my_car.move();
+
+// Classes have constructors, but they can be omitted. They are methods that are called the moment an instance is created.
+// When calling a class, like 'my_class()', it is like calling the constructor. You cannot explicitely call a constructor.
+class A {
+    construct(param) {                  // Constructors are like any other method, but you cannot return a value from them. Empty returns can be used to exit early.
+        print "inside the constructor!";
+        print param;
+        this.property_a = "random";     // You are advised to define all properties of a class inside the constructor.
+        this.property_b = void;
+    }
+}
+
+let object = A(7);
+print object.property_a;
+
+// Astra also supports inheritance. You can inherit classes from other classes like this:
+// class {class_name} : {parent_class_name} {body}
+// Example:
+class Food {
+    construct() {
+        this.is_yummy = false;
+        this.taste = void;
+        this.name = void;
+    }
+
+    eat() {
+        print "You ate";
+    }
+
+    print_type() {
+        print "FOOD!";
+    }
+}
+
+// Astra DOES NOT YET support inheriting class variables/properties.
+
+class Vegetable : Food {
+    construct(name) {
+        this.name = name;
+    }
+
+    throw_it_up() {             // ... Don't. Vegetables are good for your health
+        print "... ew";
+    }
+
+    eat_and_throw_up() {
+        super.eat();            // By accessing super, you access methods from the base class that are not overrided in the derived class.
+        this.throw_it_up();
+    }
+
+    print_type() {              // This overrides the parent class' method.
+        print "VEGETABLE!";
+    }
+}
+
+let carrot = Vegetable("carrot");
+carrot.print_type();
+print carrot.is_yummy;
+carrot.eat();                   // Vegetable does not have an eat method, but it is derived from Food that has it.
+carrot.eat_and_throw_up();

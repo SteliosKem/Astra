@@ -17,7 +17,7 @@ CURRENT:
 - Closures
 - Classes
 - Methods
-- Inheritance (FULL OOP!)
+- Inheritance (FULL OOP!)		NEED TO INHERIT MEMBERS
 
 
 PLANNED:
@@ -44,6 +44,7 @@ PLANNED:
 - Immutable Objects
 - Public Private
 - Static
+- Type conversion
 Maybe:
 - Types
 

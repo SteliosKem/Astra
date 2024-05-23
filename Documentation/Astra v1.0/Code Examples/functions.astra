@@ -1,0 +1,57 @@
+// Functions are like "blocks of code" that can be reused, and that can perform actions based on an input and return an output.
+// They are extremely helpful in order to make code clearer, reusable and functional.
+// They are expressed like so:
+// fn function_name() {body}
+// Example:
+
+fn my_function() {
+    print "Inside the function!!";
+}
+
+// This by itself will not do anything. In order for functions to be useful they need to be called. You call function like this:
+// function_name();
+
+my_function();
+// When a function gets called, the code inside it gets executed.
+
+// Functions are even more useful when they take inputs and do something with them.
+// fn function_with_parameters(parameter1, parameter2, etc...) {body}
+// function_with_parameters(a, b, etc...);
+
+fn add_two_numbers(number_one, number_two) {
+    print "Number one + Number two is:";
+    print number_one + number_two;
+}
+
+add_two_numbers(7, 8);
+
+// You can also return a value in order to use it in an expression, with 'return {value}'.
+// Everything after a return statement gets ignored. It can also be used without returning a value in order to exit out of a function prematurely.
+fn subtract_two_numbers(number_one, number_two) {
+    return number_one + number_two;
+}
+
+print subtract_two_numbers(7, 8) + 2;
+
+// While there is no support for lamba functions yet, this is supported:
+fn my_function(param) {
+    print param;
+}
+let variable_that_holds_a_function = my_function;
+variable_that_holds_a_function("CALLED FROM A VARIABLE");
+
+// Apart from this and instanciating classes that you will see later, nothing other than functions can be called.
+// Nested functions are allowed, and Astra supports closures.
+
+fn outer_function() {
+    let outer_var = "OUTER_VAR";
+    fn inner_function() {
+        print outer_var;
+    }
+}
+
+outer_function();
+
+// There are 2 built-in functions as of yet, which are not user-defined.
+// These are time() which returns the current time (can be useful for timing)
+// And input() which allows you to input text from the console.

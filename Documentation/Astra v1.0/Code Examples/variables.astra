@@ -1,0 +1,35 @@
+// Variables can hold values of any type
+// Astra is a dynamically typed language, type annotation is not supported and variables can change the type they hold.
+// They are declared with the keyword 'let', followed by their name.
+// If the variable is not declared with a value at its creation, it will hold the 'void' value.
+
+// Variable names must start with a letter, but they can contain upper and lower case letters, numbers and underscores.
+
+let variable1;                  // Variable declaration without a value
+print variable1;                // Output the value the variable holds to the console, this will print 'void'
+
+let variable2 = "Hello!";
+print variable2;                // This will print 'Hello!'
+
+// A variable's value can be changed after the variable is declared. The type of it can also be changed unlike other languages.
+
+variable2 = "Hello, world!";    // This is assignement
+print variable2;
+variable2 = 5;
+print variable2;
+
+// A variable that is already declared cannot be redeclared.
+// THIS WILL OUTPUT AN ERROR IF UNCOMMENTATED
+// let variable2 = true;
+
+// All the variables that were showed up to this point were global variables. This means that they can be accessed from anywhere in the code.
+
+let global_var = "This is a global variable";
+{                               // These are blocks, and inside them a new local scope is created
+    let scoped_var = "This is a local variable";
+    print global_var;           // You can access global variables inside other scopes
+    {
+        print scoped_variable;  // You can access local variables in nested scopes.
+    }
+}
+// Here 'scoped_var' is out of scope and it cannot be accessed. It is like it does not exists
