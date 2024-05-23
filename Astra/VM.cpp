@@ -128,7 +128,7 @@ Result VM::run() {
 		}
 		case OC_ADD:
 		{
-			if (is_string(peek(0)) && is_string(peek(1))) concatenate_string();
+			if (is_string(peek(0)) || is_string(peek(1))) concatenate_string();
 			else if (is_number(peek(0)) && is_number(peek(1))) res = binary_operation(VALUE_NUMBER, TOKEN_PLUS);
 			else {
 				runtime_error("Cannot operate on these types");
@@ -636,13 +636,74 @@ bool VM::values_equal(Value a, Value b) {
 }
 
 void VM::concatenate_string() {
-	String* b = get_string(pop_stack());
-	String* a = get_string(pop_stack());
-	String* new_str = new String(a->str + b->str);
-	new_str->next = objects;
-	objects = new_str;
-	push_stack(make_string(new_str));
-	delete a, b;
+	if (is_string(peek(0)) && is_string(peek(1))) {
+		String* b = get_string(pop_stack());
+		String* a = get_string(pop_stack());
+		String* new_str = new String(a->str + b->str);
+		new_str->next = objects;
+		objects = new_str;
+		push_stack(make_string(new_str));
+		//delete a, b;
+	}
+	else {
+		if (is_string(peek(0))) {
+			String* b = get_string(pop_stack());
+			Value a = pop_stack();
+			std::string to_concat = "";
+			switch (a.type) {
+			case VALUE_VOID:
+				to_concat = "void";
+				break;
+			case VALUE_NUMBER:
+				to_concat = std::to_string(get_number(a));
+				break;
+			case VALUE_BOOL:
+				if(get_bool(a))
+					to_concat = "true";
+				else
+					to_concat = "false";
+				break;
+			default:
+				if (!is_instance(a)) {					// To support class to_str built-in
+					runtime_error("Cannot perform operation on these values");
+					return;
+				}
+			}
+			String* new_str = new String(to_concat + b->str);
+			new_str->next = objects;
+			objects = new_str;
+			push_stack(make_string(new_str));
+			//delete b;
+		}
+		else {
+			Value b = pop_stack();
+			String* a = get_string(pop_stack());
+			std::string to_concat = "";
+			switch (b.type) {
+			case VALUE_VOID:
+				to_concat = "void";
+				break;
+			case VALUE_NUMBER:
+				to_concat = std::to_string(get_number(b));
+				break;
+			case VALUE_BOOL:
+				if (get_bool(b))
+					to_concat = "true";
+				else
+					to_concat = "false";
+				break;
+			default:
+				if (!is_instance(b)) {					// To support class to_str built-in
+					runtime_error("Cannot perform operation on these values");
+					return;
+				}
+			}
+			String* new_str = new String(a->str + to_concat);
+			new_str->next = objects;
+			objects = new_str;
+			push_stack(make_string(new_str));
+		}
+	}
 }
 
 

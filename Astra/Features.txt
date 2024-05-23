@@ -19,9 +19,11 @@ CURRENT:
 - Methods
 - Inheritance (FULL OOP!)		NEED TO INHERIT MEMBERS
 
+2.0:
+- Concatenation on String and Non-String
 
 PLANNED:
-- Concatenation on String and Non-String
+- Escape sequences
 - String Interpolation
 - String Utils
 - Actual Errors
