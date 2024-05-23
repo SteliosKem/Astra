@@ -41,7 +41,8 @@ enum OpCode {
 	OC_INVOKE,
 	OC_INHERIT,
 	OC_GET_SUPER,
-	OC_SUPER_INVOKE
+	OC_SUPER_INVOKE,
+	OC_PUSH
 };
 
 class Chunk {

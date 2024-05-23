@@ -18,10 +18,12 @@ CURRENT:
 - Classes
 - Methods
 - Inheritance (FULL OOP!)		NEED TO INHERIT MEMBERS
-- Lambda Functions: let func = <parameters> {body}
 
 2.0:
 - Concatenation on String and Non-String
+- SUPPORT MULTIPLE BREAK/CONTINUE
+- Block Expressions let var = {let b = 5; if b == 5 respond 2;};
+- Lambda Functions: let func = <parameters> {body}
 
 PLANNED:
 - Escape sequences
@@ -38,7 +40,6 @@ PLANNED:
 - Multi File support, packahes and Cosmos package manager
 - REFACTOR AND FIX LEAKS, USE SMART POINTERS
 - Enums
-- Block Expressions let var = {let b = 5; if b == 5 respond 2;};
 - Lambda Classes: let ClassA = 
 - ? : Operator
 - Const

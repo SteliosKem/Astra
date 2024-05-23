@@ -14,3 +14,37 @@ my_function(<> {
     print "Lamba functions are helpful!";
     return "returned from lamda";
 });
+
+/*let var_b = {
+    
+    if 5==5
+        respond {
+            if 5==4
+                respond "INNER";
+            else
+                respond "INNER INNER";
+        };
+    else
+        respond {
+            if 5==4
+                respond "INNER2";
+            else
+                respond "INNER INNER2";
+        };
+};*/
+let a = 0;
+let b = 0;
+while a < 10 {
+    a += 1;
+    if a == 3 {
+        continue;
+    }
+    if a == 5 {
+        continue;
+    }
+    print a;
+    
+    
+}
+
+print "hey";

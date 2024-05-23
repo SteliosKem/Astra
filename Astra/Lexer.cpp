@@ -182,6 +182,7 @@ TokenType Lexer::id_type(const std::string& id) {
         }
         case 'r': {
             if (id == "return") return TOKEN_RETURN;
+            else if (id == "respond") return TOKEN_RESPOND;
             break;
         }
         case 's': {

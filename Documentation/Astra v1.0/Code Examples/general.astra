@@ -2,6 +2,13 @@
 // Comment allow you to describe code, or write anything you want and they get ignored on compilation.
 // Comments starting with '//' will include everything written until the end of the line.
 // Comments that start with '/*' and end with '*/' include everything written in-between.
+/*
+    THIS
+    IS
+    A
+    MULTILINE
+    COMMENT
+*/
 // When you want to temporarily disable code, you can comment it out so you don't lose it.
 
 // Types:

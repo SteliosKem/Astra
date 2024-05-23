@@ -89,7 +89,8 @@ enum ParseFn {
 	FN_CALL,
 	FN_DOT,
 	FN_THIS,
-	FN_SUPER
+	FN_SUPER,
+	FN_COMPOUND
 };
 
 struct ParseRule {
@@ -209,6 +210,7 @@ private:
 	void variable_declaration();
 	void compount_statement();
 	void if_statement();
+	void respond_statement();
 
 	// VARIABLES
 	uint8_t parse_variable(const std::string& error);
@@ -245,8 +247,8 @@ private:
 	int current_exit_jump = 0;
 	int current_loop_start = -1;
 	int current_loop_scope_depth = 0;
-	int break_pos = -1;
-	int continue_pos = -1;
+	std::vector<int> break_pos;
+	std::vector<int> continue_pos;
 	void break_statement();
 	void continue_statement();
 
@@ -266,4 +268,7 @@ private:
 	void this_oop();
 	ClassLayer* current_class = nullptr;
 	void parse_super();
+
+	void expression_compound();
+	std::vector<int> respond_jumps;
 };

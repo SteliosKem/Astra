@@ -321,6 +321,7 @@ Result VM::run() {
 				push_stack(value);
 				break;
 			}
+			
 			if (!bind_method(instance->class_target, name))
 				return RUNTIME_ERROR;
 			break;

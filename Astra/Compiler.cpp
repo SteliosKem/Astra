@@ -10,7 +10,7 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	
 	rules[TOKEN_L_PAR] = ParseRule{ FN_GROUPING, FN_CALL, PREC_CALL };
 	rules[TOKEN_R_PAR] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
-	rules[TOKEN_L_BRACE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_PRIMARY };
+	rules[TOKEN_L_BRACE] = ParseRule{ FN_COMPOUND,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_R_BRACE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_COMMA] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_DOT] = ParseRule{ FN_NONE,     FN_DOT,   PREC_CALL };
@@ -277,6 +277,8 @@ void Compiler::call_prec_function(ParseFn func) {
 		return this_oop();
 	case FN_SUPER:
 		return parse_super();
+	case FN_COMPOUND:
+		return expression_compound();
 	default:
 		break;
 	}
@@ -597,6 +599,9 @@ void Compiler::statement() {
 	else if (match(TOKEN_RETURN)) {
 		return_statement();
 	}
+	else if (match(TOKEN_RESPOND)) {
+		respond_statement();
+	}
 	else if (match(TOKEN_BREAK)) {
 		break_statement();
 	}
@@ -638,6 +643,31 @@ void Compiler::return_statement() {
 	expression();
 	consume(TOKEN_SEMICOLON, "Expected ';'");
 	emit_byte(OC_RETURN);
+}
+
+void Compiler::expression_compound() {
+	new_scope();
+	compount_statement();
+	end_scope();
+	
+	if (respond_jumps.size() == 0) {
+		emit_byte(OC_VOID);
+	}
+	else {
+		for(int& i : respond_jumps)
+			patch_jump(i);
+	}
+
+	respond_jumps = std::vector<int>();					// FIX FOR MORE RESPONDS, AND NESTED RESPONDS
+}
+
+void Compiler::respond_statement() {
+	//std::cout << parser.previous_token.value << parser.current_token.value;
+	expression();
+	consume(TOKEN_SEMICOLON, "Expected ';'");
+	//emit_byte(OC_PUSH);
+	respond_jumps.push_back(emit_jump(OC_JMP));
+	emit_byte(OC_POP);
 }
 
 void Compiler::expression_statement() {
@@ -943,9 +973,10 @@ void Compiler::while_statement() {
 	patch_jump(exit_jump);
 	
 	emit_byte(OC_POP);
-	if (break_pos != -1) {
-		patch_jump(break_pos);
-		break_pos = -1;
+	if (break_pos.size() != 0) {
+		for(int& i : break_pos)
+			patch_jump(i);
+		break_pos = std::vector<int>();
 	}
 	current_loop_start = surrounding_loop_start;
 	current_loop_scope_depth = surrounding_scope_depth;
@@ -959,7 +990,7 @@ void Compiler::break_statement() {
 	consume(TOKEN_SEMICOLON, "Expected ';' after expression");
 	for (int i = current->local_count - 1; i >= 0 && current->locals[i].depth > current_loop_scope_depth; i--)
 		emit_byte(OC_POP);
-	break_pos = emit_jump(OC_JMP);
+	break_pos.push_back(emit_jump(OC_JMP));
 	emit_byte(OC_POP);
 }
 
@@ -1025,9 +1056,10 @@ void Compiler::for_statement() {
 		patch_jump(exit_jump);
 		emit_byte(OC_POP);
 	}
-	if (break_pos != -1) {
-		patch_jump(break_pos);
-		break_pos = -1;
+	if (break_pos.size() != 0) {
+		for(int& i : break_pos)
+			patch_jump(i);
+		break_pos = std::vector<int>();
 	}
 
 	current_loop_start = surrounding_loop_start;
