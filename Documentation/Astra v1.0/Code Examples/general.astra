@@ -13,7 +13,7 @@
 
 // Types:
 // Astra supports the following types: Number, Boolean, String, Void, and User defined types.
-// Arrays, Enums, Tuples and other types are supported yet.
+// Arrays, Tuples and other types are supported yet.
 // The number type is made up of integers and floating point numbers.
 // The boolean type can contain either a true or false value.
 // The string type contains any text surrounded by double quotes (" ").

@@ -11,11 +11,25 @@ fn my_function(func_parameter) {
 }
 
 my_function(<> {
-    print "Lamba functions are helpful!";
-    return "returned from lamda";
+    print "Lambda functions are helpful!";
+    return "returned from lambda";
 });
 
-/*let var_b = {
+fn load_page(page, error_call_back) {
+    // Do stuff
+    if error {
+        error_call_back(error);
+    }
+}
+
+let my_var = {
+    if is_this_true
+        respond 5;
+    else
+        respond 2;
+} * 4;
+
+let var_b = {
     
     if 5==5
         respond {
@@ -31,20 +45,6 @@ my_function(<> {
             else
                 respond "INNER INNER2";
         };
-};*/
-let a = 0;
-let b = 0;
-while a < 10 {
-    a += 1;
-    if a == 3 {
-        continue;
-    }
-    if a == 5 {
-        continue;
-    }
-    print a;
-    
-    
-}
+};
 
-print "hey";
+print var_b;

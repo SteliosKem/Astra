@@ -33,3 +33,9 @@ let global_var = "This is a global variable";
     }
 }
 // Here 'scoped_var' is out of scope and it cannot be accessed. It is like it does not exists
+
+let counter = 5;
+counter += 5;                   // This adds something to the previous value of counter. It is like writing counter = counter + 5;
+counter -= 2;
+counter *= 2;
+counter /= 3;

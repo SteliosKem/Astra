@@ -48,6 +48,7 @@ fn outer_function() {
     fn inner_function() {
         print outer_var;
     }
+    inner_function();
 }
 
 outer_function();

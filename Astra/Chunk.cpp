@@ -111,6 +111,10 @@ int Chunk::disassemble_instruction(int offset) {
 	}
 	case OC_CLASS:
 		return constant_instruction("OC_CLASS", offset);
+	case OC_ENUM:
+		return constant_instruction("OC_ENUM", offset);
+	case OC_ENUM_VALUE:
+		return constant_instruction("OC_ENUM_VALUE", offset);
 	case OC_GET_MEMBER:
 		return constant_instruction("OC_GET_MEMBER", offset);
 	case OC_SET_MEMBER:
@@ -220,6 +224,12 @@ void print_object(Value value) {
 		break;
 	case OBJ_INSTANCE:
 		std::cout << "<" << get_instance(value)->class_target->name << " instance>";
+		break;
+	case OBJ_ENUM:
+		std::cout << "<" << get_enum(value)->name << " enum>";
+		break;
+	case OBJ_ENUM_VAL:
+		std::cout << "<" << get_enum_val(value)->value << " enum value>";
 		break;
 	case OBJ_BOUND_METHOD: {
 		Function* func = get_bound_method(value)->method->function;

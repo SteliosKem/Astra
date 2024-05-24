@@ -5,6 +5,8 @@
 let hello_world = "Hello, " + "world!";         // This concatenation returns the string "Hello, world!";
 
 // You can concatenate strings with numbers, booleans and void as well.
-print "Number of people: " + 5;
+print "Number of people: " + 534;
 print "This statement is " + false;
-print "This will print '" + void + "'";
+print "This will print '" + void + "'";         // BOUND TO CHANGE
+
+print "Hello" * 3;

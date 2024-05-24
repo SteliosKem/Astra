@@ -14,7 +14,9 @@ enum ObjectType {
 	OBJ_UPVALUE,
 	OBJ_CLASS,
 	OBJ_INSTANCE,
-	OBJ_BOUND_METHOD
+	OBJ_BOUND_METHOD,
+	OBJ_ENUM,
+	OBJ_ENUM_VAL
 };
 
 class Object {
@@ -32,7 +34,29 @@ public:
 	std::string str;
 };
 
+class Enumeration : public Object {
+public:
+	Enumeration() {
+		type = OBJ_ENUM;
+	}
+	Enumeration(std::string _name) {
+		name = _name;
+		type = OBJ_ENUM;
+	}
+	std::string name;
+	std::vector<std::string> values;
+};
 
+class EnumValue : public Object {
+public:
+	EnumValue(std::string name, Enumeration* _enum) {
+		value = name;
+		type = OBJ_ENUM_VAL;
+		enumeration = _enum;
+	}
+	std::string value;
+	Enumeration* enumeration;
+};
 
 enum ValueType {
 	VALUE_VOID,
@@ -93,6 +117,8 @@ bool is_object(Value val);
 bool is_string(Value val);
 bool is_class(Value val);
 bool is_instance(Value val);
+bool is_enum(Value val);
+bool is_enum_val(Value val);
 
 
 bool get_bool(Value val);
@@ -101,6 +127,8 @@ Object* get_object(Value val);
 String* get_string(Value val);
 ClassObj* get_class(Value val);
 Instance* get_instance(Value val);
+Enumeration* get_enum(Value val);
+EnumValue* get_enum_val(Value val);
 
 
 bool is_object_type(Value value, ObjectType type);

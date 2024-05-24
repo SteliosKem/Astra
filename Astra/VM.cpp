@@ -305,7 +305,27 @@ Result VM::run() {
 		case OC_CLASS:
 			push_stack(make_object(new ClassObj(get_string(read_constant(frame))->str)));
 			break;
+		case OC_ENUM:
+			push_stack(make_object(new Enumeration(get_string(read_constant(frame))->str)));
+			break;
 		case OC_GET_MEMBER: {
+			if (is_enum(peek(0))) {
+				Enumeration* _enum = get_enum(peek(0));
+				std::string name = get_string(read_constant(frame))->str;
+				Value value;
+
+				if (std::count(_enum->values.begin(), _enum->values.end(), name) > 0) {
+					value = make_object(new EnumValue(name, _enum));
+					pop_stack();
+					push_stack(value);
+					break;
+				}
+				else {
+					runtime_error("Enum '" + _enum->name + "' does not contain value '" + name + "'");
+					return RUNTIME_ERROR;
+				}
+				break;
+			}
 			if (!is_instance(peek(0))) {
 				runtime_error("Non-instances have no members");
 				return RUNTIME_ERROR;
@@ -346,6 +366,10 @@ Result VM::run() {
 		}
 		case OC_METHOD:
 			define_method(get_string(read_constant(frame))->str);
+			break;
+		case OC_ENUM_VALUE:
+			//std::cout << get_string(read_constant(frame))->str;
+			define_enum_value(get_string(read_constant(frame))->str);
 			break;
 		case OC_INVOKE: {
 			std::string method = get_string(read_constant(frame))->str;
@@ -448,6 +472,12 @@ void VM::define_method(std::string name) {
 	ClassObj* _class = get_class(peek(1));
 	_class->methods[name] = method;
 	pop_stack();
+}
+
+void VM::define_enum_value(std::string name) {
+	Enumeration* enumeration = get_enum(peek(0));
+	enumeration->values.push_back(name);
+	//pop_stack();
 }
 
 bool VM::call_value(Value callee, int arg_count) {
@@ -627,6 +657,29 @@ bool VM::values_equal(Value a, Value b) {
 		return get_number(a) == get_number(b);
 	case VALUE_OBJECT:
 	{
+		Object* a_obj = get_object(a);
+		Object* b_obj = get_object(b);
+		if (a_obj->type != b_obj->type)
+			return false;
+		switch (a_obj->type) {
+		case OBJ_STRING: {
+			String* a_str = get_string(a);
+			String* b_str = get_string(b);
+			return a_str->str == b_str->str;
+		}
+		case OBJ_CLASS: {								// TO DO LATER
+			break;
+		}
+		case OBJ_ENUM_VAL: {
+			EnumValue* a_val = get_enum_val(a);
+			EnumValue* b_val = get_enum_val(b);
+			if (a_val->enumeration != b_val->enumeration)
+				return false;
+			if (a_val->value == b_val->value)
+				return true;
+			return false;
+		}
+		}
 		String* a_str = get_string(a);
 		String* b_str = get_string(b);
 		return a_str->str == b_str->str;

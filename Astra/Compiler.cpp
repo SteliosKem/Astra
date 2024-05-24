@@ -44,6 +44,7 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	rules[TOKEN_PRINT] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_RETURN] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_RESPOND] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_ENUM] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_SUPER] = ParseRule{ FN_SUPER,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_THIS] = ParseRule{ FN_THIS,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_TRUE] = ParseRule{ FN_LITERAL,     FN_NONE,   PREC_NONE };
@@ -320,7 +321,7 @@ void Compiler::this_oop() {
 }
 
 void Compiler::access() {
-	consume(TOKEN_ID, "Expected name of instance member after '.'");
+	consume(TOKEN_ID, "Expected name after '.'");
 	uint8_t name = identifier_constant(&parser.previous_token);
 
 	if (can_assign && match(TOKEN_EQUAL)) {
@@ -494,12 +495,38 @@ void Compiler::declaration() {
 	else if (match(TOKEN_CLASS)) {
 		class_declaration();
 	}
+	else if (match(TOKEN_ENUM)) {
+		enum_declaration();
+	}
 	else if (match(TOKEN_FUN)) {
 		function_declaration();
 	}
 	else statement();
 	
 	if (parser.panic) synchronize();
+}
+
+void Compiler::enum_declaration() {
+	consume(TOKEN_ID, "Expected enumeration name");
+	Token enum_name = parser.previous_token;
+	uint8_t name_constant = identifier_constant(&parser.previous_token);
+	declare_variable();
+
+	emit_bytes(OC_ENUM, name_constant);
+	define_variable(name_constant);
+
+	named_variable(enum_name);
+	consume(TOKEN_L_BRACE, "Expected '{'");
+	if (parser.current_token.type != TOKEN_R_BRACE) {
+		do {
+			consume(TOKEN_ID, "Expected enum value name");
+			uint8_t constant = identifier_constant(&parser.previous_token);
+			//emit_byte(OC_CONSTANT);
+			emit_bytes(OC_ENUM_VALUE, constant);
+		} while (match(TOKEN_COMMA));
+	}
+	consume(TOKEN_R_BRACE, "Expected '}'");
+	emit_byte(OC_POP);
 }
 
 void Compiler::class_declaration() {

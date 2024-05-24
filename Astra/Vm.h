@@ -98,5 +98,7 @@ private:
 	bool bind_method(ClassObj* _class, std::string name);
 	bool invoke(std::string name, int arg_count);
 	bool invoke_from_class(ClassObj* _class, std::string name, int arg_count);
+
+	void define_enum_value(std::string name);
 };
 

@@ -1,0 +1,66 @@
+// Fake game
+class Player {
+    shoot(enemy) {
+        enemy.health -= 1;
+        if enemy.health <= 0 {
+            print "Player: " + this.name + " has killed enemy: " + enemy.name + "!";
+            enemy.on_death();
+        }
+    }
+    construct(name, health) {
+        this.name = name;
+        this.health = health;
+    }
+    
+    got_shot(enemy) {
+        this.health -= 10;
+        if this.health <= 0 {
+            print "Enemy: " + enemy.name + " has killed the Player!";
+        }
+        else {
+            print this.health;
+        }
+    }
+
+    heal() {
+        print "Healing!!";
+        while this.health < 20 {
+            this.health += 1;
+            print "Health: " + this.health;
+        }
+    }
+}
+
+class Enemy {
+    construct(name, health, type) {
+        this.name = name;
+        this.health = health;
+        this.type = type;
+        
+    }
+
+    make_on_death(on_death) {
+        this.on_death = on_death;
+    }
+}
+
+enum EnemyType {
+    goblin,
+    zombie
+}
+
+let my_player = Player("Steve", 20);
+let enemy1 = Enemy("Idiot zombie", 5, EnemyType.zombie);
+enemy1.make_on_death(<> {
+    print "This enemy has died";
+    print enemy1.type;
+    print enemy1.name + " is truly an idiot";
+});
+my_player.shoot(enemy1);
+my_player.shoot(enemy1);
+my_player.shoot(enemy1);
+my_player.shoot(enemy1);
+my_player.shoot(enemy1);
+//my_player.got_shot(enemy1);
+my_player.got_shot(enemy1);
+my_player.heal();

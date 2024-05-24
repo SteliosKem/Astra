@@ -111,7 +111,7 @@ struct Parser {
 
 class Compiler {
 public:
-	ParseRule rules[52];
+	ParseRule rules[53];
 	Parser& parser;
 	Lexer lexer;
 	Chunk* current_chunk() {
@@ -271,4 +271,6 @@ private:
 
 	void expression_compound();
 	std::vector<int> respond_jumps;
+
+	void enum_declaration();
 };

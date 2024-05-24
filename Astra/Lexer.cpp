@@ -162,6 +162,7 @@ TokenType Lexer::id_type(const std::string& id) {
         }
         case 'e': {
             if (id == "else") return TOKEN_ELSE;
+            else if (id == "enum") return TOKEN_ENUM;
             break;
         }
         case 'i': {

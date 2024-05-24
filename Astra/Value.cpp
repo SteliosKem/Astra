@@ -72,6 +72,12 @@ bool is_class(Value val) {
 bool is_instance(Value val) {
 	return val.type == VALUE_OBJECT && std::get<Object*>(val.value)->type == OBJ_INSTANCE;
 }
+bool is_enum(Value val) {
+	return val.type == VALUE_OBJECT && std::get<Object*>(val.value)->type == OBJ_ENUM;
+}
+bool is_enum_val(Value val) {
+	return val.type == VALUE_OBJECT && std::get<Object*>(val.value)->type == OBJ_ENUM_VAL;
+}
 
 
 double get_number(Value val) {
@@ -91,6 +97,12 @@ ClassObj* get_class(Value val) {
 }
 Instance* get_instance(Value val) {
 	return (Instance*)get_object(val);
+}
+Enumeration* get_enum(Value val) {
+	return (Enumeration*)get_object(val);
+}
+EnumValue* get_enum_val(Value val) {
+	return (EnumValue*)get_object(val);
 }
 
 

@@ -88,3 +88,4 @@ carrot.print_type();
 print carrot.is_yummy;
 carrot.eat();                   // Vegetable does not have an eat method, but it is derived from Food that has it.
 carrot.eat_and_throw_up();
+

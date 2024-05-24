@@ -27,7 +27,7 @@ CURRENT:
 
 PLANNED:
 - Escape sequences
-- String Interpolation
+- String Interpolation "The value of my_var = [{my_var}]"
 - String Utils
 - Actual Errors
 - Default Function Parameters, (Parameter Accessing?)

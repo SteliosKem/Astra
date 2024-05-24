@@ -1,0 +1,13 @@
+// Enums allow you to create a type that can hold only certain specified values.
+enum Color {
+    red,
+    green,
+    blue,
+    yellow
+}
+
+
+
+let color_of_my_car = Color.red;
+let color_of_my_other_car = Color.green;
+print color_of_my_other_car != color_of_my_other_car;
