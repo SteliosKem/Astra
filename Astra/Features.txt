@@ -24,6 +24,7 @@ CURRENT:
 - SUPPORT MULTIPLE BREAK/CONTINUE
 - Block Expressions let var = {let b = 5; if b == 5 respond 2;};
 - Lambda Functions: let func = <parameters> {body}
+- Lists, some list functions
 
 PLANNED:
 - Escape sequences

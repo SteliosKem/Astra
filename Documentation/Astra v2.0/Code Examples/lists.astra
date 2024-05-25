@@ -1,0 +1,39 @@
+// Lists are dynamic arrays
+// They allow you to create a list of values that can be altered at will
+// You can create a list like this:
+let my_list = List("These", "Are", "Values", "Of", "The", "List", 5, 12.2, void);
+print my_list;
+
+// You can get the number of elements in a list by accessing size() from the list object.
+print my_list.size();
+
+// You can access an element in a list using bracket notation, and specifying the index of the element.
+print my_list[2];       // Astra is a 0-indexed language, meaning that the first element has an index of 0.
+
+// You can also change the value of an element in a list like this:
+my_list[1] = "Aren't";
+print my_list;
+
+// You can append more elements to a list using add(value),
+let list2 = List("Element 1");
+list2.add("Element 2");
+print list2;
+
+// You can pop the last value from a list with pop().
+list2.add("Element 3");
+list2.pop();
+print list2;
+
+// You can empty a list with clear();
+list2.clear();
+print list2;
+
+// You can have lists inside of lists
+let multi_dimensional = List(List(1, 2, 3), List(1, 2, 3), List(1, 2, 3));
+print multi_dimensional;
+
+// You can have lists of functions
+let function_list = List(<> {print "First";}, <param> {print "Second"; print param;});
+print function_list;
+function_list[0]();
+function_list[1]("hello");

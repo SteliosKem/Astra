@@ -26,6 +26,14 @@ Value input_native(int arg_count, Value* args) {
 	return make_string(new String(input));
 }
 
+Value list_native(int arg_count, Value* args) {
+	List* list = new List();
+	for (int i = 0; i < arg_count; i++) {
+		list->values.push_back(args[i]);
+	}
+	return make_object(list);
+}
+
 
 Result VM::binary_operation(ValueType type, TokenType op) {
 	do {
@@ -368,7 +376,6 @@ Result VM::run() {
 			define_method(get_string(read_constant(frame))->str);
 			break;
 		case OC_ENUM_VALUE:
-			//std::cout << get_string(read_constant(frame))->str;
 			define_enum_value(get_string(read_constant(frame))->str);
 			break;
 		case OC_INVOKE: {
@@ -412,6 +419,43 @@ Result VM::run() {
 			frame = &frames[frame_count - 1];
 			break;
 		}
+		case OC_GET_INDEX: {
+			if (!is_list(peek(1))) {
+				runtime_error("Cannot access element of non-list");
+				return RUNTIME_ERROR;
+			}
+
+			List* list = get_list(peek(1));
+			Value value;
+
+			double idx = get_number(pop_stack());
+			if (idx >= list->values.size()) {
+				runtime_error("Index out of bounds");
+				return RUNTIME_ERROR;
+			}
+			pop_stack();
+			push_stack(list->values[(int)idx]);
+			break;
+		}
+		case OC_SET_INDEX: {
+			if (!is_list(peek(2))) {
+				runtime_error("Cannot set element of non-list");
+				return RUNTIME_ERROR;
+			}
+
+			List* list = get_list(peek(2));
+			Value value;
+
+			Value to_set = pop_stack();
+			double idx = get_number(pop_stack());
+			if (idx >= list->values.size()) {
+				runtime_error("Index out of bounds");
+				return RUNTIME_ERROR;
+			}
+			list->values[idx] = to_set;
+			pop_stack();
+			break;
+		}
 		}
 		
 		
@@ -425,6 +469,53 @@ Result VM::run() {
 
 bool VM::invoke(std::string name, int arg_count) {
 	Value receiver = peek(arg_count);
+
+	if (is_list(receiver)) {
+		if (name == "add") {
+			List* list = get_list(receiver);
+			for (int i = 0; i < arg_count; i++) {
+				list->values.push_back(peek(arg_count - i - 1));
+			}
+			for (int i = 0; i < arg_count; i++) {
+				pop_stack();
+			}
+			
+			//pop_stack();
+		}
+		else if (name == "size") {
+			List* list = get_list(receiver);
+			if (arg_count > 0) {
+				runtime_error("size() does not take arguments");
+				return false;
+			}
+			
+			pop_stack();
+			push_stack(make_number(list->values.size()));
+		}
+		else if (name == "pop") {
+			List* list = get_list(receiver);
+			if (arg_count > 0) {
+				runtime_error("pop() does not take arguments");
+				return false;
+			}
+
+			list->values.pop_back();
+		}
+		else if (name == "clear") {
+			List* list = get_list(receiver);
+			if (arg_count > 0) {
+				runtime_error("clear() does not take arguments");
+				return false;
+			}
+
+			list->values.clear();
+		}
+		else {
+			runtime_error("Unknown method " + name);
+			return false;
+		}
+		return true;
+	}
 
 	if (!is_instance(receiver)) {
 		runtime_error("Only instances have methods");

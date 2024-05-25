@@ -6,8 +6,21 @@ enum Color {
     yellow
 }
 
-
-
-let color_of_my_car = Color.red;
+let color_of_my_car = Color.red;                        // You can assign these values to variables
 let color_of_my_other_car = Color.green;
-print color_of_my_other_car != color_of_my_other_car;
+print color_of_my_other_car != color_of_my_other_car;   // And perform comparison operations
+
+// Example
+
+enum Result {
+    Ok,
+    Error
+}
+
+fn do_something() {
+    let had_error = true;
+    if had_error {
+        return Result.Error;
+    }
+    return Result.Ok;
+}

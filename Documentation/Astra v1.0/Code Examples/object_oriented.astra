@@ -48,7 +48,6 @@ print object.property_a;
 // Example:
 class Food {
     construct() {
-        this.is_yummy = false;
         this.taste = void;
         this.name = void;
     }
@@ -85,7 +84,10 @@ class Vegetable : Food {
 
 let carrot = Vegetable("carrot");
 carrot.print_type();
-print carrot.is_yummy;
 carrot.eat();                   // Vegetable does not have an eat method, but it is derived from Food that has it.
 carrot.eat_and_throw_up();
 
+// You can assign a class to a variable and make instances of it by calling the variable. For some reason.
+let any_var = Food;
+let another_food = any_var();
+print another_food;

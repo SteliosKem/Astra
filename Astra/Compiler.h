@@ -90,7 +90,8 @@ enum ParseFn {
 	FN_DOT,
 	FN_THIS,
 	FN_SUPER,
-	FN_COMPOUND
+	FN_COMPOUND,
+	FN_INDEX
 };
 
 struct ParseRule {
@@ -111,7 +112,7 @@ struct Parser {
 
 class Compiler {
 public:
-	ParseRule rules[53];
+	ParseRule rules[55];
 	Parser& parser;
 	Lexer lexer;
 	Chunk* current_chunk() {
@@ -273,4 +274,6 @@ private:
 	std::vector<int> respond_jumps;
 
 	void enum_declaration();
+
+	void index();
 };

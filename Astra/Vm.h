@@ -27,6 +27,7 @@ enum Result {
 
 Value time_native(int arg_count, Value* args);
 Value input_native(int arg_count, Value* args);
+Value list_native(int arg_count, Value* args);
 
 class VM {
 public:
@@ -43,6 +44,9 @@ public:
 		stack_top = stack;
 		define_native("time", time_native);
 		define_native("input", input_native);
+
+		// Classes
+		define_native("List", list_native);
 	}
 
 	void free();

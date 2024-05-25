@@ -10,6 +10,8 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	
 	rules[TOKEN_L_PAR] = ParseRule{ FN_GROUPING, FN_CALL, PREC_CALL };
 	rules[TOKEN_R_PAR] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
+	rules[TOKEN_L_BRACK] = ParseRule{ FN_NONE, FN_INDEX, PREC_CALL };
+	rules[TOKEN_R_BRACK] = ParseRule{ FN_NONE, FN_NONE, PREC_NONE };
 	rules[TOKEN_L_BRACE] = ParseRule{ FN_COMPOUND,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_R_BRACE] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
 	rules[TOKEN_COMMA] = ParseRule{ FN_NONE,     FN_NONE,   PREC_NONE };
@@ -280,6 +282,8 @@ void Compiler::call_prec_function(ParseFn func) {
 		return parse_super();
 	case FN_COMPOUND:
 		return expression_compound();
+	case FN_INDEX:
+		return index();
 	default:
 		break;
 	}
@@ -366,6 +370,50 @@ void Compiler::access() {
 	}
 }
 
+void Compiler::index() {
+	expression();
+	if (!match(TOKEN_R_BRACK)) {
+		error("Expected ']'");
+		return;
+	}
+
+	if (can_assign && match(TOKEN_EQUAL)) {
+		expression();
+		emit_byte(OC_SET_INDEX);
+	}
+	else if (can_assign && match(TOKEN_PLUS_EQUAL)) {						// NEED TO OPTIMIZE
+		emit_byte(OC_GET_MEMBER_COMPOUND);
+		expression();
+
+		emit_byte(OC_ADD);
+		emit_byte(OC_SET_INDEX);
+	}
+	else if (can_assign && match(TOKEN_MINUS_EQUAL)) {
+		emit_byte(OC_GET_MEMBER_COMPOUND);
+		expression();
+
+		emit_byte(OC_SUBTRACT);
+		emit_byte(OC_SET_INDEX);
+	}
+	else if (can_assign && match(TOKEN_STAR_EQUAL)) {
+		emit_byte(OC_GET_MEMBER_COMPOUND);
+		expression();
+
+		emit_byte(OC_MULTIPLY);
+		emit_byte(OC_SET_INDEX);
+	}
+	else if (can_assign && match(TOKEN_SLASH_EQUAL)) {
+		emit_byte(OC_GET_MEMBER_COMPOUND);
+		expression();
+
+		emit_byte(OC_DIVIDE);
+		emit_byte(OC_SET_INDEX);
+	}
+	else {
+		emit_byte(OC_GET_INDEX);
+	}
+}
+
 void Compiler::function_call() {
 	uint8_t arg_count = argument_list();
 	emit_bytes(OC_CALL, arg_count);
@@ -419,6 +467,7 @@ void Compiler::expression() {
 
 		Function* function = end();
 		function->type = OBJ_FUNCTION;
+		function->name = "anonymous";
 		emit_bytes(OC_CLOSURE, make_constant(make_object(function)));
 
 		for (int i = 0; i < function->upvalue_count; i++) {
@@ -723,6 +772,8 @@ void Compiler::synchronize() {
 		case TOKEN_WHILE:
 		case TOKEN_PRINT:
 		case TOKEN_RETURN:
+		case TOKEN_RESPOND:
+		case TOKEN_ENUM:
 			return;
 		default:
 			;

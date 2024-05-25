@@ -16,7 +16,8 @@ enum ObjectType {
 	OBJ_INSTANCE,
 	OBJ_BOUND_METHOD,
 	OBJ_ENUM,
-	OBJ_ENUM_VAL
+	OBJ_ENUM_VAL,
+	OBJ_LIST
 };
 
 class Object {
@@ -47,6 +48,8 @@ public:
 	std::vector<std::string> values;
 };
 
+
+
 class EnumValue : public Object {
 public:
 	EnumValue(std::string name, Enumeration* _enum) {
@@ -70,8 +73,6 @@ struct Value {
 	std::variant<bool, double, Object*> value;
 };
 
-
-
 class ClassObj : public Object {
 public:
 	ClassObj() {}
@@ -82,15 +83,26 @@ public:
 	std::unordered_map<std::string, Value> methods;
 };
 
-
 class Instance : public Object {
 public:
+	Instance() {
+		class_target = nullptr;
+		type = OBJ_INSTANCE;
+	}
 	Instance(ClassObj* _class_target) {
 		class_target = _class_target;
 		type = OBJ_INSTANCE;
 	}
 	ClassObj* class_target;
 	std::unordered_map<std::string, Value> fields;
+};
+
+class List : public Instance {
+public:
+	List() {
+		type = OBJ_LIST;
+	}
+	std::vector<Value> values;
 };
 
 class ValueArray {
@@ -119,7 +131,7 @@ bool is_class(Value val);
 bool is_instance(Value val);
 bool is_enum(Value val);
 bool is_enum_val(Value val);
-
+bool is_list(Value val);
 
 bool get_bool(Value val);
 double get_number(Value val);
@@ -129,6 +141,6 @@ ClassObj* get_class(Value val);
 Instance* get_instance(Value val);
 Enumeration* get_enum(Value val);
 EnumValue* get_enum_val(Value val);
-
+List* get_list(Value val);
 
 bool is_object_type(Value value, ObjectType type);

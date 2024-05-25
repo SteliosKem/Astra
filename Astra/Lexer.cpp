@@ -45,6 +45,8 @@ Token Lexer::lex() {
         case ')': return Token(TOKEN_R_PAR, "", line);
         case '{': return Token(TOKEN_L_BRACE, "", line);
         case '}': return Token(TOKEN_R_BRACE, "", line);
+        case '[': return Token(TOKEN_L_BRACK, "", line);
+        case ']': return Token(TOKEN_R_BRACK, "", line);
         case ';': return Token(TOKEN_SEMICOLON, "", line);
         case ',': return Token(TOKEN_COMMA, "", line);
         case '.': return Token(TOKEN_DOT, "", line);

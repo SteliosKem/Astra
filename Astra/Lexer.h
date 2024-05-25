@@ -4,7 +4,7 @@
 #include <memory>
 
 enum TokenType {
-	TOKEN_L_PAR, TOKEN_R_PAR, TOKEN_L_BRACE, TOKEN_R_BRACE,
+	TOKEN_L_PAR, TOKEN_R_PAR, TOKEN_L_BRACE, TOKEN_R_BRACE, TOKEN_L_BRACK, TOKEN_R_BRACK,
 	TOKEN_COMMA, TOKEN_DOT, TOKEN_DOUBLE_DOT, TOKEN_MINUS, TOKEN_PLUS,
 	TOKEN_SEMICOLON, TOKEN_SLASH, TOKEN_STAR, TOKEN_CAP,
 
@@ -53,7 +53,7 @@ public:
 
 	static bool is_digit(char character);
 	static bool is_alpha(char character);
-	static TokenType id_type(const std::string& id);		// Decides wether a word is and identifier or keyword
+	static TokenType id_type(const std::string& id);		// Decides wether a word is an identifier or keyword
 private:
 	void next();
 	void back();

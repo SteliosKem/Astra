@@ -44,7 +44,9 @@ enum OpCode {
 	OC_SUPER_INVOKE,
 	OC_PUSH,
 	OC_ENUM,
-	OC_ENUM_VALUE
+	OC_ENUM_VALUE,
+	OC_GET_INDEX,
+	OC_SET_INDEX
 };
 
 class Chunk {

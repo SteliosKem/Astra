@@ -119,6 +119,10 @@ int Chunk::disassemble_instruction(int offset) {
 		return constant_instruction("OC_GET_MEMBER", offset);
 	case OC_SET_MEMBER:
 		return constant_instruction("OC_SET_MEMBER", offset);
+	case OC_GET_INDEX:
+		return simple_instruction("OC_GET_INDEX", offset);
+	case OC_SET_INDEX:
+		return simple_instruction("OC_SET_INDEX", offset);
 	case OC_METHOD:
 		return constant_instruction("OC_METHOD", offset);
 	case OC_GET_MEMBER_COMPOUND:
@@ -231,6 +235,18 @@ void print_object(Value value) {
 	case OBJ_ENUM_VAL:
 		std::cout << "<" << get_enum_val(value)->value << " enum value>";
 		break;
+	case OBJ_LIST: {
+		std::cout << '[';
+		List* list = get_list(value);
+		for (int i = 0; i < list->values.size(); i++) {
+			print_value(list->values[i]);
+			if (i + 1 < list->values.size()) {
+				std::cout << ", ";
+			}
+		}
+		std::cout << ']';
+		break;
+	}
 	case OBJ_BOUND_METHOD: {
 		Function* func = get_bound_method(value)->method->function;
 		std::cout << "<function " << func->name << '>';

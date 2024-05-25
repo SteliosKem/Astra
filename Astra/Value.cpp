@@ -78,6 +78,9 @@ bool is_enum(Value val) {
 bool is_enum_val(Value val) {
 	return val.type == VALUE_OBJECT && std::get<Object*>(val.value)->type == OBJ_ENUM_VAL;
 }
+bool is_list(Value val) {
+	return val.type == VALUE_OBJECT && std::get<Object*>(val.value)->type == OBJ_LIST;
+}
 
 
 double get_number(Value val) {
@@ -103,6 +106,9 @@ Enumeration* get_enum(Value val) {
 }
 EnumValue* get_enum_val(Value val) {
 	return (EnumValue*)get_object(val);
+}
+List* get_list(Value val) {
+	return (List*)get_object(val);
 }
 
 
