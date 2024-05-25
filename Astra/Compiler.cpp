@@ -382,28 +382,28 @@ void Compiler::index() {
 		emit_byte(OC_SET_INDEX);
 	}
 	else if (can_assign && match(TOKEN_PLUS_EQUAL)) {						// NEED TO OPTIMIZE
-		emit_byte(OC_GET_MEMBER_COMPOUND);
+		emit_byte(OC_GET_INDEX_COMPOUND);
 		expression();
 
 		emit_byte(OC_ADD);
 		emit_byte(OC_SET_INDEX);
 	}
 	else if (can_assign && match(TOKEN_MINUS_EQUAL)) {
-		emit_byte(OC_GET_MEMBER_COMPOUND);
+		emit_byte(OC_GET_INDEX_COMPOUND);
 		expression();
 
 		emit_byte(OC_SUBTRACT);
 		emit_byte(OC_SET_INDEX);
 	}
 	else if (can_assign && match(TOKEN_STAR_EQUAL)) {
-		emit_byte(OC_GET_MEMBER_COMPOUND);
+		emit_byte(OC_GET_INDEX_COMPOUND);
 		expression();
 
 		emit_byte(OC_MULTIPLY);
 		emit_byte(OC_SET_INDEX);
 	}
 	else if (can_assign && match(TOKEN_SLASH_EQUAL)) {
-		emit_byte(OC_GET_MEMBER_COMPOUND);
+		emit_byte(OC_GET_INDEX_COMPOUND);
 		expression();
 
 		emit_byte(OC_DIVIDE);

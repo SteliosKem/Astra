@@ -437,6 +437,23 @@ Result VM::run() {
 			push_stack(list->values[(int)idx]);
 			break;
 		}
+		case OC_GET_INDEX_COMPOUND: {
+			if (!is_list(peek(1))) {
+				runtime_error("Cannot access element of non-list");
+				return RUNTIME_ERROR;
+			}
+
+			List* list = get_list(peek(1));
+			Value value;
+
+			double idx = get_number(peek(0));
+			if (idx >= list->values.size()) {
+				runtime_error("Index out of bounds");
+				return RUNTIME_ERROR;
+			}
+			push_stack(list->values[(int)idx]);
+			break;
+		}
 		case OC_SET_INDEX: {
 			if (!is_list(peek(2))) {
 				runtime_error("Cannot set element of non-list");

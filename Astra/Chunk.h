@@ -46,7 +46,8 @@ enum OpCode {
 	OC_ENUM,
 	OC_ENUM_VALUE,
 	OC_GET_INDEX,
-	OC_SET_INDEX
+	OC_SET_INDEX,
+	OC_GET_INDEX_COMPOUND
 };
 
 class Chunk {

@@ -121,6 +121,8 @@ int Chunk::disassemble_instruction(int offset) {
 		return constant_instruction("OC_SET_MEMBER", offset);
 	case OC_GET_INDEX:
 		return simple_instruction("OC_GET_INDEX", offset);
+	case OC_GET_INDEX_COMPOUND:
+		return simple_instruction("OC_GET_INDEX_COMPOUND", offset);
 	case OC_SET_INDEX:
 		return simple_instruction("OC_SET_INDEX", offset);
 	case OC_METHOD:
