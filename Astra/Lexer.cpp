@@ -36,51 +36,53 @@ Token Lexer::lex() {
         }
         next();
     }
-    if (current_char == '\0') return Token(TOKEN_EOF, "", line);    // If at end return EOF
+    if (current_char == '\0') return Token(TOKEN_EOF, "", line, pos, pos);    // If at end return EOF
     if (is_digit(current_char)) return num();                       // Make number token
     if (is_alpha(current_char)) return id();                        // Make identifier/keyword token
 
+    int old_pos = pos;
 	switch (current_char) {                                         // Make single/double character tokens or string token
-        case '(': return Token(TOKEN_L_PAR, "", line);
-        case ')': return Token(TOKEN_R_PAR, "", line);
-        case '{': return Token(TOKEN_L_BRACE, "", line);
-        case '}': return Token(TOKEN_R_BRACE, "", line);
-        case '[': return Token(TOKEN_L_BRACK, "", line);
-        case ']': return Token(TOKEN_R_BRACK, "", line);
-        case ';': return Token(TOKEN_SEMICOLON, "", line);
-        case ',': return Token(TOKEN_COMMA, "", line);
-        case '.': return Token(TOKEN_DOT, "", line);
-        case '^': return Token(TOKEN_CAP, "", line);
+        case '(': return Token(TOKEN_L_PAR, "", line, old_pos, pos);
+        case ')': return Token(TOKEN_R_PAR, "", line, old_pos, pos);
+        case '{': return Token(TOKEN_L_BRACE, "", line, old_pos, pos);
+        case '}': return Token(TOKEN_R_BRACE, "", line, old_pos, pos);
+        case '[': return Token(TOKEN_L_BRACK, "", line, old_pos, pos);
+        case ']': return Token(TOKEN_R_BRACK, "", line, old_pos, pos);
+        case ';': return Token(TOKEN_SEMICOLON, "", line, old_pos, pos);
+        case ',': return Token(TOKEN_COMMA, "", line, old_pos, pos);
+        case '.': return Token(TOKEN_DOT, "", line, old_pos, pos);
+        case '^': return Token(TOKEN_CAP, "", line, old_pos, pos);
         case '-': return Token(
-            match('=') ? TOKEN_MINUS_EQUAL : TOKEN_MINUS, "", line);
+            match('=') ? TOKEN_MINUS_EQUAL : TOKEN_MINUS, "", line, old_pos, pos);
         case '+': return Token(
-            match('=') ? TOKEN_PLUS_EQUAL : TOKEN_PLUS, "", line);
+            match('=') ? TOKEN_PLUS_EQUAL : TOKEN_PLUS, "", line, old_pos, pos);
         case '/': return Token(
-            match('=') ? TOKEN_SLASH_EQUAL : TOKEN_SLASH, "", line);
+            match('=') ? TOKEN_SLASH_EQUAL : TOKEN_SLASH, "", line, old_pos, pos);
         case '*': return Token(
-            match('=') ? TOKEN_STAR_EQUAL : TOKEN_STAR, "", line);
-        case ':': return Token(TOKEN_DOUBLE_DOT, "", line);
+            match('=') ? TOKEN_STAR_EQUAL : TOKEN_STAR, "", line, old_pos, pos);
+        case ':': return Token(TOKEN_DOUBLE_DOT, "", line, old_pos, pos);
         case '!':
             return Token(
-                match('=') ? TOKEN_BANG_EQUAL : TOKEN_BANG, "", line);
+                match('=') ? TOKEN_BANG_EQUAL : TOKEN_BANG, "", line, old_pos, pos);
         case '=':
             return Token(
-                match('=') ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL, "", line);
+                match('=') ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL, "", line, old_pos, pos);
         case '<':
             return Token(
-                match('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS, "", line);
+                match('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS, "", line, old_pos, pos);
         case '>':
             return Token(
-                match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER, "", line);
+                match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER, "", line, old_pos, pos);
         case '"':
             return str();
 	}
-    return Token("Unexpected character: " + current_char, line);    // If nothing matches return error
+    return Token(std::string("Unexpected character '") + current_char + "'", line, old_pos, pos);    // If nothing matches return error
 }
 
 Token Lexer::str() {
     std::string string;
     bool interpolated = false;
+    int old_pos = pos;
     next();
     while (current_char != '"' && current_char != '\0') {           // Make the string body
         if (current_char == '[' && source[pos + 1] == '{')
@@ -92,13 +94,14 @@ Token Lexer::str() {
     }
 
     if (current_char == '\0')
-        return Token("Unterminated string", line);                  // If the lexer reaches the end without closing the string return an error
+        return Token("Unterminated string", line, old_pos, pos);                  // If the lexer reaches the end without closing the string return an error
     if (interpolated)
-        return Token(TOKEN_INTER_STR, string, line);
-    return Token(TOKEN_STR, string, line);
+        return Token(TOKEN_INTER_STR, string, line, old_pos, pos);
+    return Token(TOKEN_STR, string, line, old_pos, pos);
 }
 
 Token Lexer::num() {
+    int old_pos = pos;
     std::string num_string;
     bool is_float = false;
     bool has_error = false;
@@ -115,12 +118,13 @@ Token Lexer::num() {
     back();
 
     if (has_error)
-        return Token("Unexpected dot", line);
+        return Token("Unexpected dot", line, old_pos, pos);
 
-    return Token(TOKEN_NUM, num_string, line);
+    return Token(TOKEN_NUM, num_string, line, old_pos, pos);
 }
 
 Token Lexer::id() {
+    int old_pos = pos;
     std::string string;
 
     while (is_alpha(current_char) || is_digit(current_char)) {      // Make identifier body
@@ -128,7 +132,7 @@ Token Lexer::id() {
         next();
     }
     back();
-    return Token(id_type(string), string, line);                    // Check if name is identifier or keyword
+    return Token(id_type(string), string, line, old_pos, pos);                    // Check if name is identifier or keyword
 }
 
 bool Lexer::match(char expected) {

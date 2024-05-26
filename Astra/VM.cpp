@@ -229,7 +229,7 @@ Result VM::run() {
 		{
 			String* name = get_string(read_constant(frame));
 			if (globals.find(name->str) == globals.end()) {
-				runtime_error(std::format("Undefined variable '{0}'", name->str));
+				runtime_error(std::format("Cannot set undefined variable '{0}'", name->str));
 				return RUNTIME_ERROR;
 			}
 			globals[name->str] = peek(0);
@@ -335,7 +335,7 @@ Result VM::run() {
 				break;
 			}
 			if (!is_instance(peek(0))) {
-				runtime_error("Non-instances have no members");
+				runtime_error("Non-instances do not have fields");
 				return RUNTIME_ERROR;
 			}
 
@@ -356,7 +356,7 @@ Result VM::run() {
 		}
 		case OC_SET_MEMBER: {
 			if (!is_instance(peek(1))) {
-				runtime_error("Non-instances do not have fields");
+				runtime_error("Can't set field of non-instance");
 				return RUNTIME_ERROR;
 			}
 			Instance* instance = get_instance(peek(1));
@@ -555,7 +555,7 @@ bool VM::invoke(std::string name, int arg_count) {
 bool VM::invoke_from_class(ClassObj* _class, std::string name, int arg_count) {
 	Value method;
 	if (_class->methods.find(name) == _class->methods.end()) {
-		runtime_error("Undefined member '" + name + "'");
+		runtime_error("Undefined method '" + name + "'");
 		return false;
 	}
 	method = _class->methods[name];
@@ -565,7 +565,7 @@ bool VM::invoke_from_class(ClassObj* _class, std::string name, int arg_count) {
 bool VM::bind_method(ClassObj* _class, std::string name) {
 	Value method;
 	if (_class->methods.find(name) == _class->methods.end()) {
-		runtime_error("Undefined member '" + name + "'");
+		runtime_error("Undefined method '" + name + "'");
 		return false;
 	}
 	method = _class->methods[name];
@@ -602,7 +602,7 @@ bool VM::call_value(Value callee, int arg_count) {
 				return call_function(get_closure(_class->methods["construct"]), arg_count);
 			}
 			else if (arg_count != 0) {
-				runtime_error("Expected 0 arguments but got " + arg_count);
+				runtime_error("Expected 0 arguments but got " + std::to_string(arg_count));
 				return false;
 			}
 			return true;
@@ -700,7 +700,6 @@ void VM::free_object(Object* obj) {
 }
 
 Result VM::interpret(const std::string& input) {
-	std::cout << "here";
 	Parser parser{};
 	Compiler comp(input, parser);
 	compiler = &comp;
@@ -742,16 +741,78 @@ Value VM::peek(int distance) {
 }
 
 void VM::runtime_error(std::string format) {
-	std::cout << format;
+	std::cout << '\n' << "Runtime Error: " << format << '\n';
+
+	CallFrame* frame = &frames[frame_count - 1];
+	Function* func = frame->closure->function;
+	size_t instruction = frame->program_counter - &func->chunk.code[0] - 1;
+	Position pos = func->chunk.lines[instruction];
+
+	std::string& src = compiler->lexer.source;
+	const int max_length_til_newline = 40;
+	const int max_error_length = 20;
+	const int error_size_before_after = 10;
+	const int max_length_after = 40;
+	std::string before = src.substr(0, pos.start_pos);
+	auto last_new_line = before.rfind('\n');
+	int last_newline_pos = std::string::npos != last_new_line ? last_new_line : 0;
+
+	int before_error_size = 0;
+	int error_size = 0;
+
+	std::string line_str = "Line " + std::to_string(pos.line) + ": ";
+	std::cout << "Line " << pos.line << ": ";
+	int starting = line_str.size();
+
+	if (pos.start_pos - last_newline_pos > max_length_til_newline) {
+		std::string new_str = "..." + src.substr(pos.start_pos - max_length_til_newline, max_length_til_newline);
+		std::cout << new_str;
+		before_error_size = new_str.size();
+	}
+	else {
+		std::string new_str = src.substr(last_newline_pos, pos.start_pos);
+		std::cout << new_str;
+		before_error_size = new_str.size();
+	}
+	if (pos.end_pos - pos.start_pos > max_error_length) {
+		std::string new_str = src.substr(pos.start_pos, max_error_length / 4) + "..." + src.substr(pos.end_pos - max_error_length / 4, max_error_length / 4 + 1);
+		std::cout << new_str;
+		error_size = new_str.size();
+	}
+	else {
+		std::string new_str = src.substr(pos.start_pos, pos.end_pos - pos.start_pos + 1);
+		std::cout << new_str;
+		error_size = new_str.size();
+	}
+	auto final_new_line = before.find('\n', pos.end_pos);
+	std::string after = "";
+	after = final_new_line != std::string::npos ? src.substr(pos.end_pos + 1, final_new_line) : src.substr(pos.end_pos + 1);
+
+	if (after.size() > max_length_after) {
+		std::cout << after.substr(0, max_length_after) << "...";
+	}
+	else
+		std::cout << after;
+	std::cout << std::endl;
+	for (int i = 0; i < starting + before_error_size; i++) {
+		std::cout << ' ';
+	}
+	for (int i = 0; i < error_size; i++) {
+		std::cout << '^';
+	}
+	if (error_size == 0)
+		std::cout << '^';
+
+	std::cout << " <- Here" << std::endl;
 
 	for (int i = frame_count - 1; i >= 0; i--) {
 		CallFrame* frame = &frames[i];
 		Function* func = frame->closure->function;
 		size_t instruction = frame->program_counter - &func->chunk.code[0] - 1;
-		std::cout << "in " << (func->name == "" ? "script" : func->name) << " at line: " << func->chunk.lines[instruction] << std::endl;
+		std::cout << "In " << (func->name == "" ? "script" : func->name) << " at line: " << func->chunk.lines[instruction].line << std::endl;
 	}
 	stack_top = stack;
-	//frames = std::vector<CallFrame>();
+	frame_count = 0;
 }
 
 bool VM::values_equal(Value a, Value b) {

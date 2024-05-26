@@ -5,6 +5,7 @@
 #include "Value.h"
 #include "Memory.h"
 
+
 Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 	lexer.source = src;
 	
@@ -66,7 +67,7 @@ Compiler::Compiler(const std::string& src, Parser& _parser) : parser(_parser) {
 }
 
 Function* Compiler::compile() {
-	while (true) {
+	/*while (true) {
 		Token token = lexer.lex();
 		if (token.line != lexer.line) {
 			std::cout << "    " << token.line;
@@ -78,7 +79,7 @@ Function* Compiler::compile() {
 		if (token.type == TOKEN_EOF) break;
 	}
 	lexer.pos = -1;
-	lexer.line = 0;
+	lexer.line = 0;*/
 	current->function = new Function();
 	next();
 	while (!match(TOKEN_EOF)) {
@@ -110,18 +111,78 @@ void Compiler::next() {
 void Compiler::error_at(Token* token, const std::string& message) {
 	if (parser.panic) return;
 	parser.panic = true;
+	std::cout << std::endl;
 	std::cout << "Error";
 
 	if (token->type == TOKEN_EOF) {
-		std::cout << " at end: ";
-	}
-	else if (token->type == TOKEN_ERROR) {
-
+		std::cout << " at end of file: ";
 	}
 	else {
-		std::cout << " at line: " << token->line << " ";
+		std::cout << " at line " << token->line << ": ";
 	}
 	std::cout << message << std::endl;
+	
+
+	std::string& src = lexer.source;
+	const int max_length_til_newline = 40;
+	const int max_error_length = 20;
+	const int error_size_before_after = 10;
+	const int max_length_after = 40;
+	std::string before = src.substr(0, token->start_idx);
+	auto last_new_line = before.rfind('\n');
+	int last_newline_pos = std::string::npos != last_new_line ? last_new_line : 0;
+
+	int before_error_size = 0;
+	int error_size = 0;
+
+	std::string line_str = "Line " + std::to_string(token->line) + ": ";
+	std::cout << "Line " << token->line << ": ";
+	int starting = line_str.size();
+
+	if (token->start_idx - last_newline_pos > max_length_til_newline) {
+		std::string new_str = "..." + src.substr(token->start_idx - max_length_til_newline, max_length_til_newline);
+		std::cout << new_str;
+		before_error_size = new_str.size();
+	}
+	else {
+		std::string new_str = src.substr(last_newline_pos, token->start_idx);
+		std::cout << new_str;
+		before_error_size = new_str.size();
+	}
+	if (token->end_idx - token->start_idx > max_error_length) {
+		std::string new_str = src.substr(token->start_idx, max_error_length / 4) + "..." + src.substr(token->end_idx - max_error_length / 4, max_error_length / 4 + 1);
+		std::cout << new_str;
+		error_size = new_str.size();
+	}
+	else {
+		std::string new_str = "";
+		if(token->type != TOKEN_EOF)
+			new_str = src.substr(token->start_idx, token->end_idx - token->start_idx + 1);
+		std::cout << new_str;
+		error_size = new_str.size();
+	}
+	auto final_new_line = before.find('\n', token->end_idx);
+	std::string after = "";
+	if (token->type != TOKEN_EOF && token->end_idx < src.size()) {
+		after = final_new_line != std::string::npos ? src.substr(token->end_idx + 1, final_new_line) : src.substr(token->end_idx + 1);
+	}
+
+	if (after.size() > max_length_after) {
+		std::cout << after.substr(0, max_length_after) << "...";
+	}
+	else
+		std::cout << after;
+	std::cout << std::endl;
+	for (int i = 0; i < starting + before_error_size; i++) {
+		std::cout << ' ';
+	}
+	for (int i = 0; i < error_size; i++) {
+		std::cout << '^';
+	}
+	if(error_size == 0)
+		std::cout << '^';
+
+	std::cout << " <- Here" << std::endl;
 	parser.error = true;
 }
 
@@ -911,8 +972,9 @@ void Compiler::compount_statement() {
 	while (parser.current_token.type != TOKEN_R_BRACE && parser.current_token.type != TOKEN_EOF) {
 		declaration();
 	}
-
+	std::cout << parser.current_token.type;
 	consume(TOKEN_R_BRACE, "Expected '}'");
+	std::cout << "HERE";
 }
 void Compiler::end_scope() {
 	current->scope_depth--;

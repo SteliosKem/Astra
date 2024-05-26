@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-void Chunk::write(uint8_t byte, int line) {
+void Chunk::write(uint8_t byte, Position line) {
 	code.push_back(byte);
 	lines.push_back(line);
 }
@@ -22,10 +22,10 @@ void Chunk::disassemble(std::string name) {
 
 int Chunk::disassemble_instruction(int offset) {
 	std::cout << offset << " ";
-	if (offset > 0 && lines[offset] == lines[offset - 1])
+	if (offset > 0 && lines[offset].line == lines[offset - 1].line)
 		std::cout << "    | ";
 	else {
-		std::cout << "    " << lines[offset] << " ";
+		std::cout << "    " << lines[offset].line << " ";
 	}
 
 	uint8_t instruction = code[offset];

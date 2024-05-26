@@ -50,13 +50,19 @@ enum OpCode {
 	OC_GET_INDEX_COMPOUND
 };
 
+struct Position {
+	int line;
+	int start_pos;
+	int end_pos;
+};
+
 class Chunk {
 public:
 	std::vector<uint8_t> code;										// Bytes
 	ValueArray constants;											// Constant Pool
-	std::vector<int> lines;
+	std::vector<Position> lines;
 
-	void write(uint8_t byte, int line);								// Write byte to chunk
+	void write(uint8_t byte, Position line);								// Write byte to chunk
 	void free();
 	void disassemble(std::string name);
 	int add_constant(Value value);									// Add to constant pool

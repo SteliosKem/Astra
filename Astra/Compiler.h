@@ -167,7 +167,7 @@ public:
 	}
 
 	void emit_byte(uint8_t byte) {
-		current_chunk()->write(byte, parser.previous_token.line);
+		current_chunk()->write(byte, { parser.previous_token.line, parser.previous_token.start_idx, parser.previous_token.end_idx });
 	}
 
 	uint8_t make_constant(Value value);

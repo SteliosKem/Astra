@@ -25,6 +25,7 @@ CURRENT:
 - Block Expressions let var = {let b = 5; if b == 5 respond 2;};
 - Lambda Functions: let func = <parameters> {body}
 - Lists, some list functions
+- Enums
 
 PLANNED:
 - Escape sequences
@@ -37,11 +38,8 @@ PLANNED:
 - Making binaries with VM
 - Increment/Decrement Operators 
 - Switch
-- Full support for native functions
-- Multi File support, packahes and Cosmos package manager
+- Multi File support, packages and Cosmos package manager
 - REFACTOR AND FIX LEAKS, USE SMART POINTERS
-- Enums
-- Lambda Classes: let ClassA = 
 - ? : Operator
 - Const
 - Class Instances to string _format()

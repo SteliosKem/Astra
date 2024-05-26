@@ -27,16 +27,20 @@ enum TokenType {
 
 class Token {
 public:
-	Token(TokenType _type, std::string _value, int _line) : type(_type), value(_value), line(_line) {}
+	Token(TokenType _type, std::string _value, int _line, int _start, int _end) : type(_type), value(_value), line(_line), start_idx(_start), end_idx(_end) {}
 	Token() {}
-	Token(const std::string& error, int _line) {
+	Token(const std::string error, int _line, int _start, int _end) {
 		type = TOKEN_ERROR;
 		value = error;
 		line = _line;
+		start_idx = _start;
+		end_idx = _end;
 	}
 	TokenType type;
 	std::string value;
 	int line;
+	int start_idx;
+	int end_idx;
 };
 
 class Lexer {
